@@ -1,25 +1,41 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useRooms, usePresence } from "../hooks/useChat";
 import { useDMs, useDMRequests } from "../hooks/useDMs";
-import Avatar from "../components/shared/Avatar";
+import { useGroupDMs } from "../hooks/useGroupDMs";
+import { useVibe, VIBES } from "../hooks/useVibe";
+import VibeAvatar from "../components/vibe/VibeAvatar";
+import VibePicker from "../components/vibe/VibePicker";
 import UserSearch from "../components/dm/UserSearch";
 import DMRequestsBadge from "../components/dm/DMRequestsBadge";
+import CreateGroupModal from "../components/dm/CreateGroupModal";
 import NotificationBell from "../components/shared/NotificationBell";
 
 export default function MainLayout() {
   const { profile, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showSearch, setShowSearch] = useState(false);
+  const [showVibePicker, setShowVibePicker] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const { rooms, createRoom } = useRooms();
   const { dms } = useDMs();
+  const { groups } = useGroupDMs();
   const { incoming } = useDMRequests();
+  const { myVibe } = useVibe();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: "", description: "", type: "public" });
+  const vibeRef = useRef();
   usePresence();
   const is = (path) => location.pathname.startsWith(path);
+
+  useEffect(() => {
+    const h = (e) => { if (vibeRef.current && !vibeRef.current.contains(e.target)) setShowVibePicker(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -34,29 +50,30 @@ export default function MainLayout() {
       <nav className="rail">
         <div className="rail-top">
           <div className="rail-logo"><svg width="22" height="22" viewBox="0 0 28 28" fill="none"><path d="M14 2C7.373 2 2 7.373 2 14c0 2.09.536 4.052 1.474 5.762L2 26l6.48-1.448A11.952 11.952 0 0014 26c6.627 0 12-5.373 12-12S20.627 2 14 2z" fill="currentColor"/></svg></div>
-          <button className={`rail-btn ${is("/feed") ? "active" : ""}`} onClick={() => navigate("/feed")} title="Home">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <button className={`rail-btn ${is("/chat") ? "active" : ""}`} onClick={() => navigate("/chat")} title="Channels">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          </button>
-          <button className={`rail-btn ${is("/dm") ? "active" : ""}`} onClick={() => navigate("/dm")} title="Messages">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            {incoming.length > 0 && <span className="rail-badge">{incoming.length}</span>}
-          </button>
-          <button className={`rail-btn ${is("/u/") ? "active" : ""}`} onClick={() => navigate(`/u/${profile?.username}`)} title="Profile">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          </button>
-          <button className="rail-btn" onClick={() => setShowSearch(true)} title="Search">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          </button>
+          <button className={`rail-btn ${is("/feed") ? "active" : ""}`} onClick={() => navigate("/feed")} title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+          <button className={`rail-btn ${is("/chat") ? "active" : ""}`} onClick={() => navigate("/chat")} title="Channels"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+          <button className={`rail-btn ${is("/dm") || is("/group") ? "active" : ""}`} onClick={() => navigate("/dm")} title="Messages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>{incoming.length > 0 && <span className="rail-badge">{incoming.length}</span>}</button>
+          <button className={`rail-btn ${is("/u/") ? "active" : ""}`} onClick={() => navigate(`/u/${profile?.username}`)} title="Profile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
+          <button className="rail-btn" onClick={() => setShowSearch(true)} title="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg></button>
           <NotificationBell />
         </div>
         <div className="rail-bottom">
-          <button className="rail-btn" onClick={() => navigate(`/u/${profile?.username}`)}><Avatar user={profile} size={28} /></button>
-          <button className="rail-btn" onClick={logout} title="Sign out">
-            <svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          {/* Vibe picker button */}
+          <div ref={vibeRef} style={{ position: "relative" }}>
+            <button className="rail-btn vibe-rail-btn" onClick={() => setShowVibePicker(v => !v)} title="Set your vibe">
+              {myVibe ? <span style={{ fontSize: 18 }}>{myVibe.emoji}</span> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>}
+              {myVibe && <span className="vibe-rail-dot" style={{ background: myVibe.color }} />}
+            </button>
+            {showVibePicker && (
+              <div className="vibe-picker-float">
+                <VibePicker onClose={() => setShowVibePicker(false)} />
+              </div>
+            )}
+          </div>
+          <button className="rail-btn" onClick={() => navigate(`/u/${profile?.username}`)}>
+            <VibeAvatar user={profile} uid={user?.uid} size={28} showVibe={false} />
           </button>
+          <button className="rail-btn" onClick={logout} title="Sign out"><svg width="17" height="17" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
         </div>
       </nav>
 
@@ -73,29 +90,43 @@ export default function MainLayout() {
                 <div className="create-room-actions"><button type="button" className="btn-ghost" onClick={() => setShowCreateRoom(false)}>Cancel</button><button type="submit" className="btn-primary">Create</button></div>
               </form>
             )}
-            <nav className="room-list">
-              {rooms.map(r => (
-                <button key={r.id} className={`room-item ${is(`/chat/${r.id}`) ? "active" : ""}`} onClick={() => navigate(`/chat/${r.id}`)}>
-                  <span className="room-hash">{r.type === "private" ? "🔒" : "#"}</span>
-                  <span className="room-name">{r.name}</span>
-                </button>
-              ))}
-            </nav>
+            <nav className="room-list">{rooms.map(r => (<button key={r.id} className={`room-item ${is(`/chat/${r.id}`) ? "active" : ""}`} onClick={() => navigate(`/chat/${r.id}`)}><span className="room-hash">{r.type === "private" ? "🔒" : "#"}</span><span className="room-name">{r.name}</span></button>))}</nav>
           </>
         )}
-        {is("/dm") && (
+        {(is("/dm") || is("/group")) && (
           <>
-            <div className="sidebar-head"><span>Messages</span><button className="icon-btn" onClick={() => setShowSearch(true)}><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button></div>
+            <div className="sidebar-head">
+              <span>Messages</span>
+              <div style={{ display: "flex", gap: 2 }}>
+                <button className="icon-btn" onClick={() => setShowCreateGroup(true)} title="New group"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M12 8a3 3 0 100-6 3 3 0 000 6zM4 8a3 3 0 100-6 3 3 0 000 6zM0 14c0-2.2 1.8-4 4-4h1M8 14c0-2.2 1.8-4 4-4h0a4 4 0 014 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg></button>
+                <button className="icon-btn" onClick={() => setShowSearch(true)} title="New DM"><svg width="13" height="13" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+              </div>
+            </div>
             <DMRequestsBadge />
+            {/* Group DMs */}
+            {groups.length > 0 && (
+              <>
+                <div className="sidebar-section-label">Groups</div>
+                <nav className="room-list">
+                  {groups.map(g => (
+                    <button key={g.id} className={`room-item ${is(`/group/${g.id}`) ? "active" : ""}`} onClick={() => navigate(`/group/${g.id}`)}>
+                      <div className="group-avatar-mini">👥</div>
+                      <div className="room-item-info"><span className="room-name">{g.name}</span>{g.lastMessage && <span className="room-preview">{g.lastMessage.content?.substring(0,24)}</span>}</div>
+                    </button>
+                  ))}
+                </nav>
+                <div className="sidebar-section-label">Direct</div>
+              </>
+            )}
             <nav className="room-list">
               {dms.map(dm => (
                 <button key={dm.id} className={`room-item ${is(`/dm/${dm.id}`) ? "active" : ""}`} onClick={() => navigate(`/dm/${dm.id}`)}>
-                  <Avatar user={dm.otherUser} size={26} />
-                  <div className="room-item-info"><span className="room-name">{dm.otherUser?.displayName || "User"}</span>{dm.lastMessage && <span className="room-preview">{dm.lastMessage.content?.substring(0,28)}</span>}</div>
+                  <VibeAvatar user={dm.otherUser} uid={dm.otherUser?.uid} size={26} showVibe={true} />
+                  <div className="room-item-info"><span className="room-name">{dm.otherUser?.displayName || "User"}</span>{dm.lastMessage && <span className="room-preview">{dm.lastMessage.content?.substring(0,24)}</span>}</div>
                   {dm.unread?.[profile?.uid] > 0 && <span className="unread-badge">{dm.unread[profile.uid]}</span>}
                 </button>
               ))}
-              {dms.length === 0 && <div className="sidebar-empty">No messages yet.<br/>Search someone to start!</div>}
+              {dms.length === 0 && groups.length === 0 && <div className="sidebar-empty">No messages yet.<br/>Search to start chatting!</div>}
             </nav>
           </>
         )}
@@ -103,6 +134,7 @@ export default function MainLayout() {
 
       <main className="main-area"><Outlet /></main>
       {showSearch && <UserSearch onClose={() => setShowSearch(false)} />}
+      {showCreateGroup && <CreateGroupModal onClose={() => setShowCreateGroup(false)} onCreated={(id) => navigate(`/group/${id}`)} />}
     </div>
   );
 }
