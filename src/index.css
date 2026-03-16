@@ -468,3 +468,252 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
 .story-bg-swatch.selected { border-color: #fff; transform: scale(1.15); }
 .create-story-footer { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 16px; border-top: 1px solid var(--border); }
 
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE — append this to the end of index.css
+   ═══════════════════════════════════════════════ */
+
+/* ── Sidebar section label ────────────────────── */
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 10px 14px 4px;
+}
+
+/* ── Vibe picker float (desktop) ──────────────── */
+.vibe-picker-float {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  min-width: 260px;
+}
+.vibe-picker {
+  background: var(--bg-1);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-xl);
+  padding: 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.75);
+}
+.vibe-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
+.vibe-clear-btn { background: transparent; border: none; font-size: 11px; font-weight: 600; color: var(--red); cursor: pointer; font-family: var(--font); }
+.vibe-current { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: var(--text-2); }
+.vibe-current-pill { display: flex; align-items: center; gap: 4px; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; border: 1.5px solid transparent; }
+.vibe-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.vibe-option { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 4px; background: var(--bg-2); border: 1.5px solid var(--border); border-radius: var(--r-md); cursor: pointer; transition: all .12s; font-family: var(--font); }
+.vibe-option:hover { background: var(--bg-hover); border-color: var(--border-2); }
+.vibe-option.active { background: var(--accent-bg); border-color: var(--accent-bd); }
+.vibe-emoji { font-size: 20px; }
+.vibe-label { font-size: 10px; font-weight: 600; color: var(--text-2); }
+.vibe-rail-dot { position: absolute; bottom: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--bg-1); }
+
+/* ── Drawer sidebar (tablet / mobile) ─────────── */
+.drawer-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 80;
+  transform: translateX(-100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
+  box-shadow: 4px 0 32px rgba(0,0,0,.5);
+}
+.drawer-sidebar.open { transform: translateX(0); }
+.drawer-sidebar-head {
+  display: flex;
+  align-items: center;
+  padding: 12px 10px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 79;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Bottom tab bar ───────────────────────────── */
+.bottom-tab-bar {
+  display: none; /* hidden by default; shown on mobile */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  z-index: 70;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .15s;
+  padding: 6px 4px;
+  position: relative;
+}
+.bottom-tab.active { color: var(--accent-2); }
+.bottom-tab:hover { color: var(--text-2); }
+.bottom-tab-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 15px;
+  height: 15px;
+  background: var(--red);
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+/* ════════════════════════════════════════════════
+   BREAKPOINTS
+   ════════════════════════════════════════════════ */
+
+/* ── Tablet (768px – 1023px): rail only, no sidebar ── */
+@media (max-width: 1023px) {
+  /* Hide the static desktop sidebar */
+  .desktop-sidebar { display: none; }
+
+  /* Shrink rail slightly */
+  .rail { width: 54px; }
+
+  /* Feed max-width tighter */
+  .feed-wrap { max-width: 100%; padding: 20px 16px 48px; }
+
+  /* Notif panel — keep it on screen */
+  .notif-panel { left: 0; transform: none; right: 0; margin: 0 8px; width: auto; }
+}
+
+/* ── Mobile (< 768px): no rail, bottom tab bar ── */
+@media (max-width: 767px) {
+  /* Hide desktop rail entirely */
+  .rail { display: none; }
+
+  /* Show bottom tab bar */
+  .bottom-tab-bar { display: flex; }
+
+  /* Shell fills full width, leave room for bottom bar */
+  .shell { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+  /* Main area flush */
+  .main-area { width: 100%; }
+
+  /* Sidebar drawer starts from left edge (no rail offset) */
+  .drawer-sidebar { left: 0; width: 280px; }
+
+  /* Feed */
+  .feed-wrap { padding: 16px 12px 24px; gap: 12px; }
+  .feed-header h1 { font-size: 18px; }
+
+  /* Post card */
+  .post-card { border-radius: var(--r-lg); padding: 14px; }
+  .post-img { max-height: 280px; }
+
+  /* Chat window */
+  .chat-window { height: calc(100vh - 60px - env(safe-area-inset-bottom)); }
+  .chat-topbar { padding: 10px 14px; }
+  .messages-area { padding: 12px 12px 6px; }
+  .input-bar { padding: 8px 10px 12px; }
+
+  /* DM bubbles — allow a bit more width on small screens */
+  .dm-bubble-col { max-width: 85%; }
+
+  /* Auth page */
+  .auth-box { padding: 28px 20px; border-radius: var(--r-lg); }
+
+  /* Profile cover shorter */
+  .profile-cover { height: 80px; }
+  .profile-card-body { padding: 0 16px 20px; margin-top: -32px; }
+  .profile-display { font-size: 17px; }
+  .profile-counts { gap: 14px; }
+
+  /* Stories bar */
+  .stories-bar { gap: 10px; padding: 4px 2px 10px; }
+  .story-avatar-ring { width: 54px; height: 54px; }
+
+  /* Story viewer — full screen already, just ensure safe areas */
+  .story-progress-bars { padding-top: env(safe-area-inset-top, 12px); }
+
+  /* Modals full-screen on mobile */
+  .modal-bg { align-items: flex-end; padding: 0; }
+  .search-modal,
+  .create-group-modal,
+  .create-story-modal {
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    max-width: 100%;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Notif panel */
+  .notif-panel { position: fixed; top: auto; bottom: calc(60px + env(safe-area-inset-bottom)); left: 8px; right: 8px; width: auto; transform: none; }
+
+  /* Sticker panel */
+  .sticker-panel { margin: 0 8px 6px; }
+
+  /* Voice recorder */
+  .voice-recorder { margin: 0 8px 6px; }
+
+  /* Message actions — make tap targets bigger */
+  .act-btn { width: 34px; height: 34px; }
+
+  /* Reaction picker centered */
+  .rxn-picker { left: 50%; transform: translateX(-50%); }
+  .post-rxn-picker { left: 0; }
+
+  /* Vibe picker on mobile — use fixed overlay */
+  .vibe-picker-float {
+    position: fixed;
+    bottom: calc(60px + env(safe-area-inset-bottom) + 8px);
+    left: 12px;
+    right: 12px;
+    transform: none;
+  }
+
+  /* Input bar textarea */
+  .chat-textarea { font-size: 16px; /* prevents iOS zoom */ }
+
+  /* Sidebar section label */
+  .sidebar-section-label { padding: 8px 12px 3px; }
+}
+
+/* ── Large screens (≥ 1280px): wider sidebar ── */
+@media (min-width: 1280px) {
+  :root { --sidebar-w: 260px; }
+}
+
+/* ── Extra large (≥ 1536px) ── */
+@media (min-width: 1536px) {
+  .feed-wrap { max-width: 680px; }
+}
+
+/* ── Landscape mobile fix ── */
+@media (max-width: 767px) and (orientation: landscape) {
+  .chat-window { height: calc(100vh - 52px); }
+  .bottom-tab-bar { height: 52px; }
+  .shell { padding-bottom: 52px; }
+  .story-viewer-overlay { overflow-y: auto; }
+}
