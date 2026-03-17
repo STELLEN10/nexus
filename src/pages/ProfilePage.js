@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -21,7 +21,15 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [dmStatus, setDmStatus] = useState(null);
+
+  // Username editing state
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
+
   const avatarInputRef = useRef();
+  const usernameInputRef = useRef();
   const { sendRequest } = useDMRequests();
 
   useEffect(() => {
@@ -52,6 +60,59 @@ export default function ProfilePage() {
     const result = await sendRequest(profile);
     if (result.exists) navigate(`/dm/${result.id}`);
     else setDmStatus(result.sent ? "sent" : "pending");
+  };
+
+  const startEditingUsername = () => {
+    setNewUsername(profile.username || "");
+    setUsernameError("");
+    setEditingUsername(true);
+    setTimeout(() => usernameInputRef.current?.focus(), 50);
+  };
+
+  const handleUsernameChange = async () => {
+    const trimmed = newUsername.trim().toLowerCase();
+
+    // Validation
+    if (!trimmed) { setUsernameError("Username can't be empty."); return; }
+    if (trimmed.length < 3) { setUsernameError("Must be at least 3 characters."); return; }
+    if (trimmed.length > 20) { setUsernameError("Max 20 characters."); return; }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError("Letters, numbers, underscores only."); return; }
+    if (trimmed === profile.username) { setEditingUsername(false); return; }
+
+    setSavingUsername(true);
+    setUsernameError("");
+
+    try {
+      // Check uniqueness
+      const snap = await getDocs(query(collection(db, "users"), where("username", "==", trimmed)));
+      if (!snap.empty) {
+        setUsernameError("Username already taken.");
+        setSavingUsername(false);
+        return;
+      }
+
+      // Delete old username doc, create new one
+      await deleteDoc(doc(db, "usernames", profile.username));
+      await setDoc(doc(db, "usernames", trimmed), { uid: user.uid });
+
+      // Update user doc + Firebase Auth displayName
+      await updateUserProfile({ username: trimmed, displayName: trimmed });
+
+      setEditingUsername(false);
+      // Navigate to new username URL
+      navigate(`/u/${trimmed}`, { replace: true });
+    } catch (err) {
+      console.error(err);
+      setUsernameError("Something went wrong. Try again.");
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
+  const cancelUsernameEdit = () => {
+    setEditingUsername(false);
+    setUsernameError("");
+    setNewUsername("");
   };
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>;
@@ -86,8 +147,59 @@ export default function ProfilePage() {
 
           <div className="profile-meta">
             <h1 className="profile-display">{profile.displayName}</h1>
-            <span className="profile-handle">@{profile.username}</span>
-            {online && <span className="profile-online">● online</span>}
+
+            {/* Username row */}
+            {editingUsername && isOwnProfile ? (
+              <div className="username-edit-wrap">
+                <span className="username-at-prefix">@</span>
+                <input
+                  ref={usernameInputRef}
+                  className="username-edit-input"
+                  value={newUsername}
+                  onChange={e => { setNewUsername(e.target.value); setUsernameError(""); }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleUsernameChange();
+                    if (e.key === "Escape") cancelUsernameEdit();
+                  }}
+                  maxLength={20}
+                  placeholder="newusername"
+                  disabled={savingUsername}
+                />
+                <button
+                  className="username-save-btn"
+                  onClick={handleUsernameChange}
+                  disabled={savingUsername}
+                >
+                  {savingUsername ? <span className="spinner-sm" /> : "✓"}
+                </button>
+                <button
+                  className="username-cancel-btn"
+                  onClick={cancelUsernameEdit}
+                  disabled={savingUsername}
+                >
+                  ✕
+                </button>
+                {usernameError && (
+                  <span className="username-error">{usernameError}</span>
+                )}
+              </div>
+            ) : (
+              <div className="username-display-row">
+                <span className="profile-handle">@{profile.username}</span>
+                {online && <span className="profile-online">● online</span>}
+                {isOwnProfile && (
+                  <button
+                    className="username-edit-trigger"
+                    onClick={startEditingUsername}
+                    title="Change username"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="profile-counts">
