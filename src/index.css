@@ -1596,6 +1596,69 @@ body {
   left: 8px;
 }
 
+
+/* Deleted message tombstone */
+.dm-bubble.deleted {
+  background: transparent !important;
+  border: 1.5px dashed var(--border) !important;
+}
+ 
+.dm-deleted-txt {
+  font-size: 13px;
+  color: var(--text-3);
+  font-style: italic;
+}
+ 
+/* Inline delete confirmation */
+.dm-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, .08);
+  border: 1.5px solid rgba(239, 68, 68, .22);
+  border-radius: var(--r-lg);
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+ 
+.dm-delete-confirm span {
+  font-size: 13px;
+  color: var(--text-2);
+  flex: 1;
+  white-space: nowrap;
+}
+ 
+.dm-del-yes {
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 4px 12px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+ 
+.dm-del-yes:hover { opacity: .85; }
+ 
+.dm-del-no {
+  background: transparent;
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+}
+ 
+.dm-del-no:hover { border-color: var(--border-2); color: var(--text); }
+
+
 /* ── Typing ───────────────────────────────── */
 .typing-row {
   display: flex;
