@@ -49,3 +49,9 @@ export default function AuthPage() {
     </div>
   );
 }
+
+const updateUserProfile = async (updates) => {
+  await updateDoc(doc(db, "users", user.uid), updates);
+  if (updates.displayName) await updateProfile(user, { displayName: updates.displayName });
+  setProfile(prev => ({ ...prev, ...updates }));
+};
