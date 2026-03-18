@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNotifications } from "../../hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -45,22 +46,18 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="modal-bg" onClick={() => setOpen(false)}>
           <div className="notif-modal" onClick={e => e.stopPropagation()}>
-
             <div className="notif-panel-head">
               <span>Notifications</span>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {notifications.length > 0 && (
-                  <button className="notif-mark-btn" onClick={markAllRead}>
-                    Mark all read
-                  </button>
+                  <button className="notif-mark-btn" onClick={markAllRead}>Mark all read</button>
                 )}
                 <button className="icon-btn" onClick={() => setOpen(false)}>✕</button>
               </div>
             </div>
-
             <div className="notif-panel-list">
               {notifications.length === 0 ? (
                 <div className="notif-empty">
@@ -76,9 +73,7 @@ export default function NotificationBell() {
                   >
                     <div className="notif-ico">{ICONS[n.type] || "🔔"}</div>
                     <div className="notif-info">
-                      <span className="notif-msg">
-                        <b>{n.fromUsername}</b> {n.message}
-                      </span>
+                      <span className="notif-msg"><b>{n.fromUsername}</b> {n.message}</span>
                       <span className="notif-ts">{timeAgo(n.createdAt)}</span>
                     </div>
                     {!n.read && <div className="notif-unread-dot" />}
@@ -86,9 +81,9 @@ export default function NotificationBell() {
                 ))
               )}
             </div>
-
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
