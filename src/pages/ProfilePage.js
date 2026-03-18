@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, deleteDoc, setDoc, getDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +12,59 @@ import Avatar from "../components/shared/Avatar";
 import PostCard from "../components/social/PostCard";
 import CreatePost from "../components/social/CreatePost";
 
+// ── Followers / Following modal ────────────────────────────
+function FollowListModal({ uid, mode, onClose }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!uid) return;
+    setLoading(true);
+    // mode="followers" → who follows uid → followingId==uid, show followerId
+    // mode="following" → who uid follows → followerId==uid, show followingId
+    const filterField  = mode === "followers" ? "followingId" : "followerId";
+    const targetField  = mode === "followers" ? "followerId"  : "followingId";
+    getDocs(query(collection(db, "follows"), where(filterField, "==", uid)))
+      .then(async snap => {
+        const ids = snap.docs.map(d => d.data()[targetField]);
+        if (!ids.length) { setUsers([]); setLoading(false); return; }
+        const profiles = await Promise.all(ids.map(id => getDoc(doc(db, "users", id))));
+        setUsers(profiles.filter(s => s.exists()).map(s => ({ id: s.id, ...s.data() })));
+        setLoading(false);
+      });
+  }, [uid, mode]);
+
+  return (
+    <div className="modal-bg" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="follow-list-modal">
+        <div className="follow-list-header">
+          <h3>{mode === "followers" ? "Followers" : "Following"}</h3>
+          <button className="icon-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="follow-list-body">
+          {loading && <div style={{ display:"flex", justifyContent:"center", padding:32 }}><div className="spinner" /></div>}
+          {!loading && users.length === 0 && (
+            <div className="follow-list-empty">
+              {mode === "followers" ? "No followers yet" : "Not following anyone yet"}
+            </div>
+          )}
+          {users.map(u => (
+            <div key={u.id} className="follow-list-row" onClick={() => { navigate(`/u/${u.username}`); onClose(); }}>
+              <Avatar user={u} size={40} />
+              <div className="follow-list-info">
+                <span className="follow-list-name">{u.displayName}</span>
+                <span className="follow-list-handle">@{u.username}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Profile page ───────────────────────────────────────────
 export default function ProfilePage() {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -21,8 +74,9 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [dmStatus, setDmStatus] = useState(null);
+  const [followModal, setFollowModal] = useState(null); // "followers" | "following" | null
 
-  // Username editing state
+  // Username editing
   const [editingUsername, setEditingUsername] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
@@ -34,6 +88,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!username) return;
+    setTargetUid(null);
     getDocs(query(collection(db, "users"), where("username", "==", username.toLowerCase())))
       .then(snap => { if (!snap.empty) setTargetUid(snap.docs[0].id); });
   }, [username]);
@@ -62,58 +117,38 @@ export default function ProfilePage() {
     else setDmStatus(result.sent ? "sent" : "pending");
   };
 
+  // Username change
   const startEditingUsername = () => {
     setNewUsername(profile.username || "");
     setUsernameError("");
     setEditingUsername(true);
     setTimeout(() => usernameInputRef.current?.focus(), 50);
   };
-
   const handleUsernameChange = async () => {
     const trimmed = newUsername.trim().toLowerCase();
-
-    // Validation
     if (!trimmed) { setUsernameError("Username can't be empty."); return; }
     if (trimmed.length < 3) { setUsernameError("Must be at least 3 characters."); return; }
     if (trimmed.length > 20) { setUsernameError("Max 20 characters."); return; }
     if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError("Letters, numbers, underscores only."); return; }
     if (trimmed === profile.username) { setEditingUsername(false); return; }
-
-    setSavingUsername(true);
-    setUsernameError("");
-
+    setSavingUsername(true); setUsernameError("");
     try {
-      // Check uniqueness
       const snap = await getDocs(query(collection(db, "users"), where("username", "==", trimmed)));
-      if (!snap.empty) {
-        setUsernameError("Username already taken.");
-        setSavingUsername(false);
-        return;
-      }
-
-      // Delete old username doc, create new one
+      if (!snap.empty) { setUsernameError("Username already taken."); setSavingUsername(false); return; }
       await deleteDoc(doc(db, "usernames", profile.username));
       await setDoc(doc(db, "usernames", trimmed), { uid: user.uid });
-
-      // Update user doc + Firebase Auth displayName
       await updateUserProfile({ username: trimmed, displayName: trimmed });
-
       setEditingUsername(false);
-      // Navigate to new username URL
       navigate(`/u/${trimmed}`, { replace: true });
-    } catch (err) {
-      console.error(err);
-      setUsernameError("Something went wrong. Try again.");
-    } finally {
-      setSavingUsername(false);
-    }
+    } catch (err) { console.error(err); setUsernameError("Something went wrong."); }
+    finally { setSavingUsername(false); }
   };
+  const cancelUsernameEdit = () => { setEditingUsername(false); setUsernameError(""); setNewUsername(""); };
 
-  const cancelUsernameEdit = () => {
-    setEditingUsername(false);
-    setUsernameError("");
-    setNewUsername("");
-  };
+  // Ensure posts on profile wall always have the correct wallOwner
+  const handleCreatePost = useCallback(async (data) => {
+    await createPost({ ...data, wallOwner: uid });
+  }, [createPost, uid]);
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>;
   if (!profile) return <div className="page-empty">User not found</div>;
@@ -123,12 +158,16 @@ export default function ProfilePage() {
       <div className="profile-card">
         <div className="profile-cover" />
         <div className="profile-card-body">
+
+          {/* Avatar row */}
           <div className="profile-avatar-row">
             <div style={{ position: "relative" }}>
               <Avatar user={profile} size={80} online={online} />
               {isOwnProfile && (
                 <>
-                  <button className="avatar-edit-btn" onClick={() => avatarInputRef.current.click()} disabled={uploadingAvatar}>{uploadingAvatar ? "…" : "✎"}</button>
+                  <button className="avatar-edit-btn" onClick={() => avatarInputRef.current.click()} disabled={uploadingAvatar}>
+                    {uploadingAvatar ? "…" : "✎"}
+                  </button>
                   <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
                 </>
               )}
@@ -145,10 +184,10 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Name + username */}
           <div className="profile-meta">
             <h1 className="profile-display">{profile.displayName}</h1>
 
-            {/* Username row */}
             {editingUsername && isOwnProfile ? (
               <div className="username-edit-wrap">
                 <span className="username-at-prefix">@</span>
@@ -157,42 +196,23 @@ export default function ProfilePage() {
                   className="username-edit-input"
                   value={newUsername}
                   onChange={e => { setNewUsername(e.target.value); setUsernameError(""); }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") handleUsernameChange();
-                    if (e.key === "Escape") cancelUsernameEdit();
-                  }}
+                  onKeyDown={e => { if (e.key === "Enter") handleUsernameChange(); if (e.key === "Escape") cancelUsernameEdit(); }}
                   maxLength={20}
                   placeholder="newusername"
                   disabled={savingUsername}
                 />
-                <button
-                  className="username-save-btn"
-                  onClick={handleUsernameChange}
-                  disabled={savingUsername}
-                >
+                <button className="username-save-btn" onClick={handleUsernameChange} disabled={savingUsername}>
                   {savingUsername ? <span className="spinner-sm" /> : "✓"}
                 </button>
-                <button
-                  className="username-cancel-btn"
-                  onClick={cancelUsernameEdit}
-                  disabled={savingUsername}
-                >
-                  ✕
-                </button>
-                {usernameError && (
-                  <span className="username-error">{usernameError}</span>
-                )}
+                <button className="username-cancel-btn" onClick={cancelUsernameEdit} disabled={savingUsername}>✕</button>
+                {usernameError && <span className="username-error">{usernameError}</span>}
               </div>
             ) : (
               <div className="username-display-row">
                 <span className="profile-handle">@{profile.username}</span>
                 {online && <span className="profile-online">● online</span>}
                 {isOwnProfile && (
-                  <button
-                    className="username-edit-trigger"
-                    onClick={startEditingUsername}
-                    title="Change username"
-                  >
+                  <button className="username-edit-trigger" onClick={startEditingUsername} title="Change username">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
                       <path d="M11.5 2.5l2 2L5 13H3v-2L11.5 2.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
                     </svg>
@@ -202,15 +222,41 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Counts — own profile: clicking opens modal */}
           <div className="profile-counts">
-            <div className="profile-count"><strong>{counts.followers}</strong><span>followers</span></div>
-            <div className="profile-count"><strong>{counts.following}</strong><span>following</span></div>
-            <div className="profile-count"><strong>{posts.length}</strong><span>posts</span></div>
+            <div
+              className={`profile-count ${isOwnProfile ? "clickable" : ""}`}
+              onClick={() => isOwnProfile && setFollowModal("followers")}
+              title={isOwnProfile ? "View followers" : ""}
+            >
+              <strong>{counts.followers}</strong>
+              <span>followers</span>
+            </div>
+            <div
+              className={`profile-count ${isOwnProfile ? "clickable" : ""}`}
+              onClick={() => isOwnProfile && setFollowModal("following")}
+              title={isOwnProfile ? "View following" : ""}
+            >
+              <strong>{counts.following}</strong>
+              <span>following</span>
+            </div>
+            <div className="profile-count">
+              <strong>{posts.length}</strong>
+              <span>posts</span>
+            </div>
           </div>
 
+          {/* Bio */}
           {editingBio ? (
             <div className="bio-edit">
-              <textarea className="bio-textarea" value={bio} onChange={e => setBio(e.target.value)} placeholder="Write something about yourself…" maxLength={160} autoFocus />
+              <textarea
+                className="bio-textarea"
+                value={bio}
+                onChange={e => setBio(e.target.value)}
+                placeholder="Write something about yourself…"
+                maxLength={160}
+                autoFocus
+              />
               <div className="bio-edit-actions">
                 <button className="btn-ghost-sm" onClick={() => setEditingBio(false)}>Cancel</button>
                 <button className="btn-primary-sm" onClick={async () => { await updateUserProfile({ bio }); setEditingBio(false); }}>Save</button>
@@ -221,27 +267,35 @@ export default function ProfilePage() {
               {profile.bio || (isOwnProfile ? <span className="bio-placeholder">+ Add a bio</span> : "")}
             </p>
           )}
-
-          <div className="profile-link-row">
-            <span className="profile-link">nexus.app/u/{profile.username}</span>
-            <button className="btn-copy" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/u/${profile.username}`)}>Copy</button>
-          </div>
+          {/* profile link row removed */}
         </div>
       </div>
 
+      {/* Posts */}
       <div className="feed-wrap" style={{ marginTop: 16 }}>
-        <CreatePost wallOwner={uid} onPost={createPost} />
-        {postsLoading ? [1,2].map(i => <div key={i} className="skeleton-card" />) : posts.length === 0
-          ? <div className="empty-state"><p>No posts yet</p></div>
-          : posts.map(post => (
-            <PostCard key={post.id} post={post} currentUser={user}
-              onLike={() => likePost(post.id, post.likes?.includes(user?.uid))}
-              onReact={(emoji) => reactPost(post.id, emoji, post)}
-              onDelete={post.authorId === user?.uid ? () => deletePost(post.id) : null}
-              onAuthorClick={() => navigate(`/u/${post.authorName}`)} />
-          ))
+        <CreatePost wallOwner={uid} onPost={handleCreatePost} />
+        {postsLoading
+          ? [1, 2].map(i => <div key={i} className="skeleton-card" />)
+          : posts.length === 0
+            ? <div className="empty-state"><p>No posts yet</p></div>
+            : posts.map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUser={user}
+                  onLike={() => likePost(post.id, post.likes?.includes(user?.uid))}
+                  onReact={(emoji) => reactPost(post.id, emoji, post)}
+                  onDelete={post.authorId === user?.uid ? () => deletePost(post.id) : null}
+                  onAuthorClick={() => navigate(`/u/${post.authorName}`)}
+                />
+              ))
         }
       </div>
+
+      {/* Follows modal */}
+      {followModal && (
+        <FollowListModal uid={uid} mode={followModal} onClose={() => setFollowModal(null)} />
+      )}
     </div>
   );
 }
