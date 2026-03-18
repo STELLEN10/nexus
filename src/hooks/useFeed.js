@@ -5,7 +5,7 @@ import { db, storage } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 export function useFeed(profileUid = null) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -18,13 +18,37 @@ export function useFeed(profileUid = null) {
   }, [user, profileUid]);
 
   const createPost = useCallback(async ({ content, image, wallOwner }) => {
-    const post = { content: content || "", authorId: user.uid, authorName: user.displayName || "User", authorAvatar: "", wallOwner: wallOwner || user.uid, imageUrl: "", likes: [], reactions: {}, commentCount: 0, createdAt: serverTimestamp() };
-    if (image) { const path = `posts/${user.uid}/${Date.now()}.${image.name.split(".").pop()}`; const snap = await uploadBytes(storageRef(storage, path), image); post.imageUrl = await getDownloadURL(snap.ref); }
+    const post = {
+      content: content || "",
+      authorId: user.uid,
+      authorName: profile?.displayName || user.displayName || "User",
+      authorAvatar: profile?.avatar || "",   // ← use real avatar
+      wallOwner: wallOwner || user.uid,
+      imageUrl: "",
+      likes: [],
+      reactions: {},
+      commentCount: 0,
+      createdAt: serverTimestamp(),
+    };
+    if (image) {
+      const path = `posts/${user.uid}/${Date.now()}.${image.name.split(".").pop()}`;
+      const snap = await uploadBytes(storageRef(storage, path), image);
+      post.imageUrl = await getDownloadURL(snap.ref);
+    }
     const postRef = await addDoc(collection(db, "posts"), post);
     if (wallOwner && wallOwner !== user.uid) {
-      await addDoc(collection(db, "notifications"), { type: "wall_post", fromUid: user.uid, fromUsername: user.displayName || "Someone", toUid: wallOwner, postId: postRef.id, message: "posted on your wall", read: false, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "notifications"), {
+        type: "wall_post",
+        fromUid: user.uid,
+        fromUsername: profile?.displayName || user.displayName || "Someone",
+        toUid: wallOwner,
+        postId: postRef.id,
+        message: "posted on your wall",
+        read: false,
+        createdAt: serverTimestamp(),
+      });
     }
-  }, [user]);
+  }, [user, profile]);
 
   const likePost = useCallback(async (postId, liked) => {
     await updateDoc(doc(db, "posts", postId), { likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
@@ -36,6 +60,7 @@ export function useFeed(profileUid = null) {
   }, [user]);
 
   const deletePost = useCallback(async (postId) => { await deleteDoc(doc(db, "posts", postId)); }, []);
+
   return { posts, loading, createPost, likePost, reactPost, deletePost };
 }
 
@@ -64,7 +89,13 @@ export function useComments(postId) {
     return unsub;
   }, [postId]);
   const addComment = useCallback(async (content) => {
-    await addDoc(collection(db, "posts", postId, "comments"), { content, authorId: user.uid, authorName: profile?.displayName || "User", authorAvatar: profile?.avatar || "", createdAt: serverTimestamp() });
+    await addDoc(collection(db, "posts", postId, "comments"), {
+      content,
+      authorId: user.uid,
+      authorName: profile?.displayName || "User",
+      authorAvatar: profile?.avatar || "",   // ← use real avatar in comments too
+      createdAt: serverTimestamp(),
+    });
     await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
   }, [postId, user, profile]);
   const deleteComment = useCallback(async (commentId) => {
