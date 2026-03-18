@@ -1,4 +1,5 @@
 import { useState } from "react";
+import NexusLogo from "../shared/NexusLogo";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -294,8 +295,8 @@ function AboutSection() {
   return (
     <>
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px 20px", borderBottom:"1px solid var(--border)", gap:6 }}>
-        <div style={{ width:64, height:64, background:"var(--accent-bg)", border:"1.5px solid var(--accent-bd)", borderRadius:"var(--r-xl)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--accent-2)", marginBottom:6, boxShadow:"0 0 24px var(--glow-purple)" }}>
-          <svg width="36" height="36" viewBox="0 0 28 28" fill="none"><path d="M14 2C7.373 2 2 7.373 2 14c0 2.09.536 4.052 1.474 5.762L2 26l6.48-1.448A11.952 11.952 0 0014 26c6.627 0 12-5.373 12-12S20.627 2 14 2z" fill="currentColor"/></svg>
+        <div style={{ marginBottom:6, filter:"drop-shadow(0 0 20px var(--glow-purple)) drop-shadow(0 0 40px var(--glow-cyan))" }}>
+          <NexusLogo size={88} />
         </div>
         <h2 style={{ fontSize:22, fontWeight:800, letterSpacing:"-.03em", background:"linear-gradient(135deg, var(--accent-2), var(--cyan))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Nexus</h2>
         <p style={{ fontSize:13, color:"var(--text-3)" }}>Chat · Share · Connect</p>
