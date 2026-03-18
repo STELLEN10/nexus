@@ -442,7 +442,7 @@ function HelpSection() {
 const LEGAL_DOCS = {
   tos: {
     title: "Terms of Service",
-    body: `Last updated: January 2025
+    body: `Last updated: March 2026
 
 1. ACCEPTANCE
 By using Nexus you agree to these terms. If you disagree, please stop using the service.
@@ -480,7 +480,7 @@ Contact: legal@nexus.app`,
   },
   privacy: {
     title: "Privacy Policy",
-    body: `Last updated: January 2025
+    body: `Last updated: March 2026
 
 1. DATA WE COLLECT
 • Account: username, email, profile photo
