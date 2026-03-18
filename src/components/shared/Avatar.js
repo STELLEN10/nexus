@@ -1,3 +1,4 @@
+// src/components/shared/Avatar.js
 import { useState } from "react";
 import AvatarFullView from "./AvatarFullView";
 
