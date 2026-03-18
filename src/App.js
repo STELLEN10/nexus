@@ -1,21 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotifProvider } from "./context/NotifContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import MainLayout from "./pages/MainLayout";
 import AuthPage from "./pages/AuthPage";
 import ChatPage from "./pages/ChatPage";
 import DMPage from "./pages/DMPage";
 import ProfilePage from "./pages/ProfilePage";
 import FeedPage from "./pages/FeedPage";
+import NexusLogo from "./components/shared/NexusLogo";
 
 function Guard({ children, require: requireAuth }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="splash">
       <div className="splash-logo">
-        <svg width="32" height="32" viewBox="0 0 28 28" fill="none">
-          <path d="M14 2C7.373 2 2 7.373 2 14c0 2.09.536 4.052 1.474 5.762L2 26l6.48-1.448A11.952 11.952 0 0014 26c6.627 0 12-5.373 12-12S20.627 2 14 2z" fill="currentColor"/>
-        </svg>
+        <NexusLogo size={64} />
       </div>
       <span>Nexus</span>
     </div>
@@ -44,12 +44,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NotifProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </NotifProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotifProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </NotifProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
