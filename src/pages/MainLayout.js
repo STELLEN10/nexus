@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { useAuth } from "../context/AuthContext";
 import { useRooms, usePresence } from "../hooks/useChat";
 import { useDMs, useDMRequests } from "../hooks/useDMs";
@@ -29,24 +30,16 @@ export default function MainLayout() {
   const { myVibe } = useVibe();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: "", description: "", type: "public" });
-  const vibeRef = useRef();
   const sidebarRef = useRef();
   usePresence();
 
   const is = (path) => location.pathname.startsWith(path);
-
-  // Sidebar is only useful on chat/dm/group routes
   const hasSidebar = is("/chat") || is("/dm") || is("/group");
 
   useEffect(() => {
-    const h = (e) => { if (vibeRef.current && !vibeRef.current.contains(e.target)) setShowVibePicker(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  useEffect(() => {
     const h = (e) => {
-      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target)) setSidebarOpen(false);
+      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target))
+        setSidebarOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -65,7 +58,6 @@ export default function MainLayout() {
 
   const SidebarContent = () => (
     <>
-      {/* ── Channels ── */}
       {is("/chat") && (
         <>
           <div className="sidebar-head">
@@ -99,7 +91,6 @@ export default function MainLayout() {
         </>
       )}
 
-      {/* ── Messages ── */}
       {(is("/dm") || is("/group")) && (
         <>
           <div className="sidebar-head">
@@ -135,19 +126,13 @@ export default function MainLayout() {
             {dms.length === 0 && groups.length === 0 ? (
               <div className="sidebar-empty">
                 No conversations yet.<br />
-                <button className="sidebar-new-dm-btn" onClick={() => setShowSearch(true)}>
-                  + Start a conversation
-                </button>
+                <button className="sidebar-new-dm-btn" onClick={() => setShowSearch(true)}>+ Start a conversation</button>
               </div>
             ) : dms.length === 0 ? (
               <div className="sidebar-empty-small">No direct messages yet.</div>
             ) : (
               dms.map(dm => (
-                <button
-                  key={dm.id}
-                  className={`room-item ${is(`/dm/${dm.id}`) ? "active" : ""}`}
-                  onClick={() => navigate(`/dm/${dm.id}`)}
-                >
+                <button key={dm.id} className={`room-item ${is(`/dm/${dm.id}`) ? "active" : ""}`} onClick={() => navigate(`/dm/${dm.id}`)}>
                   <VibeAvatar user={dm.otherUser} uid={dm.otherUser?.uid} size={26} showVibe={true} />
                   <div className="room-item-info">
                     <span className="room-name">{dm.otherUser?.displayName || "User"}</span>
@@ -189,21 +174,21 @@ export default function MainLayout() {
           </button>
           <NotificationBell />
         </div>
+
         <div className="rail-bottom">
-          <div ref={vibeRef} style={{ position: "relative" }}>
-            <button className="rail-btn vibe-rail-btn" onClick={() => setShowVibePicker(v => !v)} title="Set your vibe">
-              {myVibe
-                ? <span style={{ fontSize: 18 }}>{myVibe.emoji}</span>
-                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-              }
-              {myVibe && <span className="vibe-rail-dot" style={{ background: myVibe.color }} />}
-            </button>
-            {showVibePicker && (
-              <div className="vibe-picker-float">
-                <VibePicker onClose={() => setShowVibePicker(false)} />
-              </div>
-            )}
-          </div>
+          {/* Vibe button — opens portal-based centered modal */}
+          <button
+            className="rail-btn vibe-rail-btn"
+            onClick={() => setShowVibePicker(v => !v)}
+            title="Set your vibe"
+          >
+            {myVibe
+              ? <span style={{ fontSize: 18 }}>{myVibe.emoji}</span>
+              : <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+            }
+            {myVibe && <span className="vibe-rail-dot" style={{ background: myVibe.color }} />}
+          </button>
+
           <button className="rail-btn" onClick={() => navigate(`/u/${profile?.username}`)}>
             <VibeAvatar user={profile} uid={user?.uid} size={28} showVibe={false} />
           </button>
@@ -213,14 +198,14 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      {/* ── Desktop Sidebar — only on chat/dm/group routes ── */}
+      {/* ── Desktop Sidebar — only on chat/dm/group ── */}
       {hasSidebar && (
         <aside className="sidebar desktop-sidebar">
           <SidebarContent />
         </aside>
       )}
 
-      {/* ── Tablet/Mobile Drawer — always available for chat/dm ── */}
+      {/* ── Tablet/Mobile Drawer ── */}
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <aside ref={sidebarRef} className={`sidebar drawer-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="drawer-sidebar-head">
@@ -260,6 +245,22 @@ export default function MainLayout() {
           <span>Profile</span>
         </button>
       </nav>
+
+      {/* ── Portals — rendered directly into document.body ── */}
+
+      {/* Vibe picker — centered modal via portal */}
+      {showVibePicker && createPortal(
+        <div className="modal-bg" onClick={() => setShowVibePicker(false)}>
+          <div className="vibe-modal" onClick={e => e.stopPropagation()}>
+            <div className="vibe-modal-head">
+              <span>Set your vibe</span>
+              <button className="icon-btn" onClick={() => setShowVibePicker(false)}>✕</button>
+            </div>
+            <VibePicker onClose={() => setShowVibePicker(false)} />
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showSearch && <UserSearch onClose={() => setShowSearch(false)} />}
       {showCreateGroup && <CreateGroupModal onClose={() => setShowCreateGroup(false)} onCreated={(id) => navigate(`/group/${id}`)} />}
