@@ -1596,69 +1596,6 @@ body {
   left: 8px;
 }
 
-
-/* Deleted message tombstone */
-.dm-bubble.deleted {
-  background: transparent !important;
-  border: 1.5px dashed var(--border) !important;
-}
- 
-.dm-deleted-txt {
-  font-size: 13px;
-  color: var(--text-3);
-  font-style: italic;
-}
- 
-/* Inline delete confirmation */
-.dm-delete-confirm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(239, 68, 68, .08);
-  border: 1.5px solid rgba(239, 68, 68, .22);
-  border-radius: var(--r-lg);
-  padding: 8px 12px;
-  flex-wrap: wrap;
-}
- 
-.dm-delete-confirm span {
-  font-size: 13px;
-  color: var(--text-2);
-  flex: 1;
-  white-space: nowrap;
-}
- 
-.dm-del-yes {
-  background: var(--red);
-  border: none;
-  border-radius: var(--r-sm);
-  padding: 4px 12px;
-  color: #fff;
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity .12s;
-}
- 
-.dm-del-yes:hover { opacity: .85; }
- 
-.dm-del-no {
-  background: transparent;
-  border: 1.5px solid var(--border-2);
-  border-radius: var(--r-sm);
-  padding: 4px 10px;
-  color: var(--text-2);
-  font-family: var(--font);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all .12s;
-}
- 
-.dm-del-no:hover { border-color: var(--border-2); color: var(--text); }
-
-
 /* ── Typing ───────────────────────────────── */
 .typing-row {
   display: flex;
@@ -3626,3 +3563,371 @@ body {
     overflow-y: auto;
   }
 }
+
+/* Deleted message tombstone */
+.dm-bubble.deleted {
+  background: transparent !important;
+  border: 1.5px dashed var(--border) !important;
+}
+ 
+.dm-deleted-txt {
+  font-size: 13px;
+  color: var(--text-3);
+  font-style: italic;
+}
+ 
+/* Inline delete confirmation */
+.dm-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, .08);
+  border: 1.5px solid rgba(239, 68, 68, .22);
+  border-radius: var(--r-lg);
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+ 
+.dm-delete-confirm span {
+  font-size: 13px;
+  color: var(--text-2);
+  flex: 1;
+  white-space: nowrap;
+}
+ 
+.dm-del-yes {
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 4px 12px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+ 
+.dm-del-yes:hover { opacity: .85; }
+ 
+.dm-del-no {
+  background: transparent;
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+}
+ 
+.dm-del-no:hover { border-color: var(--border-2); color: var(--text); }
+
+/* ── Followers / Following modal ────────────── */
+.follow-list-modal {
+  background: var(--bg-1);
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-xl);
+  width: 100%;
+  max-width: 400px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+ 
+.follow-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+ 
+.follow-list-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+ 
+.follow-list-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px;
+}
+ 
+.follow-list-body::-webkit-scrollbar { width: 3px; }
+.follow-list-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+ 
+.follow-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: background .1s;
+}
+ 
+.follow-list-row:hover { background: var(--bg-hover); }
+ 
+.follow-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+ 
+.follow-list-name {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+ 
+.follow-list-handle {
+  font-size: 12px;
+  color: var(--text-2);
+}
+ 
+.follow-list-empty {
+  text-align: center;
+  padding: 32px 20px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+ 
+/* ── Clickable profile counts ────────────────── */
+.profile-count.clickable {
+  cursor: pointer;
+  border-radius: var(--r-md);
+  padding: 4px 6px;
+  margin: -4px -6px;
+  transition: background .12s;
+}
+ 
+.profile-count.clickable:hover {
+  background: var(--bg-2);
+}
+ 
+.profile-count.clickable:hover span {
+  color: var(--text-2);
+}
+ 
+/* ── Sidebar empty DM state ──────────────────── */
+.sidebar-empty-small {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+ 
+.sidebar-new-dm-btn {
+  display: inline-block;
+  margin-top: 8px;
+  background: var(--accent-bg);
+  border: 1.5px solid var(--accent-bd);
+  border-radius: var(--r-md);
+  padding: 6px 14px;
+  color: var(--accent-2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+}
+ 
+.sidebar-new-dm-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+ 
+/* ── Username editing (from previous PR) ─────── */
+.username-display-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+ 
+.username-edit-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+  opacity: 0;
+}
+ 
+.profile-meta:hover .username-edit-trigger { opacity: 1; }
+ 
+.username-edit-trigger:hover {
+  border-color: var(--accent-bd);
+  color: var(--accent-2);
+  background: var(--accent-bg);
+}
+ 
+.username-edit-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+ 
+.username-at-prefix {
+  font-size: 14px;
+  color: var(--text-3);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+ 
+.username-edit-input {
+  background: var(--bg-2);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: 5px 10px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  width: 160px;
+  transition: border-color .15s;
+}
+ 
+.username-edit-input:focus {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+ 
+.username-edit-input::placeholder { color: var(--text-3); }
+ 
+.username-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(34,197,94,.15);
+  border: 1.5px solid rgba(34,197,94,.3);
+  border-radius: var(--r-sm);
+  color: var(--green);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+ 
+.username-save-btn:hover:not(:disabled) { background: rgba(34,197,94,.28); }
+.username-save-btn:disabled { opacity: .5; cursor: not-allowed; }
+ 
+.username-cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(239,68,68,.1);
+  border: 1.5px solid rgba(239,68,68,.25);
+  border-radius: var(--r-sm);
+  color: var(--red);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+ 
+.username-cancel-btn:hover:not(:disabled) { background: rgba(239,68,68,.2); }
+.username-cancel-btn:disabled { opacity: .5; cursor: not-allowed; }
+ 
+.username-error {
+  width: 100%;
+  font-size: 12px;
+  color: #fca5a5;
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: var(--r-sm);
+  padding: 4px 8px;
+  margin-top: 2px;
+}
+ 
+/* ── DM delete (from previous PR) ───────────── */
+.dm-bubble.deleted {
+  background: transparent !important;
+  border: 1.5px dashed var(--border) !important;
+}
+ 
+.dm-deleted-txt {
+  font-size: 13px;
+  color: var(--text-3);
+  font-style: italic;
+}
+ 
+.dm-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239,68,68,.08);
+  border: 1.5px solid rgba(239,68,68,.22);
+  border-radius: var(--r-lg);
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+ 
+.dm-delete-confirm span {
+  font-size: 13px;
+  color: var(--text-2);
+  flex: 1;
+  white-space: nowrap;
+}
+ 
+.dm-del-yes {
+  background: var(--red);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 4px 12px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .12s;
+}
+ 
+.dm-del-yes:hover { opacity: .85; }
+ 
+.dm-del-no {
+  background: transparent;
+  border: 1.5px solid var(--border-2);
+  border-radius: var(--r-sm);
+  padding: 4px 10px;
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+}
+ 
+.dm-del-no:hover { border-color: var(--border-2); color: var(--text); }
+ 
+/* Mobile follow modal */
+@media (max-width: 767px) {
+  .follow-list-modal {
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    max-width: 100%;
+    max-height: 80vh;
+  }
+}
+ 
