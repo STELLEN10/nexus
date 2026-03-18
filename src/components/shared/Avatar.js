@@ -51,7 +51,3 @@ export default function Avatar({ user, size = 36, online, tappable = false }) {
     </>
   );
 }
-
-
-
-
