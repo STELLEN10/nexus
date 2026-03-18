@@ -33,28 +33,21 @@ export default function MainLayout() {
   usePresence();
   const is = (path) => location.pathname.startsWith(path);
 
-  // Close vibe picker on outside click
   useEffect(() => {
     const h = (e) => { if (vibeRef.current && !vibeRef.current.contains(e.target)) setShowVibePicker(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  // Close sidebar drawer on outside click (tablet/mobile)
   useEffect(() => {
     const h = (e) => {
-      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target)) {
-        setSidebarOpen(false);
-      }
+      if (sidebarOpen && sidebarRef.current && !sidebarRef.current.contains(e.target)) setSidebarOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [sidebarOpen]);
 
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();
@@ -65,10 +58,12 @@ export default function MainLayout() {
     navigate(`/chat/${id}`);
   };
 
-  // Sidebar content (shared between desktop sidebar and drawer)
   const SidebarContent = () => (
     <>
+      {/* ── Feed sidebar ── */}
       {is("/feed") && <div className="sidebar-head"><span>Home feed</span></div>}
+
+      {/* ── Channels sidebar ── */}
       {is("/chat") && (
         <>
           <div className="sidebar-head">
@@ -101,6 +96,8 @@ export default function MainLayout() {
           </nav>
         </>
       )}
+
+      {/* ── Messages sidebar — always fully rendered when on /dm or /group ── */}
       {(is("/dm") || is("/group")) && (
         <>
           <div className="sidebar-head">
@@ -114,7 +111,10 @@ export default function MainLayout() {
               </button>
             </div>
           </div>
+
           <DMRequestsBadge />
+
+          {/* Groups */}
           {groups.length > 0 && (
             <>
               <div className="sidebar-section-label">Groups</div>
@@ -132,19 +132,42 @@ export default function MainLayout() {
               <div className="sidebar-section-label">Direct</div>
             </>
           )}
+
+          {/* Direct messages — always show past conversations */}
           <nav className="room-list">
-            {dms.map(dm => (
-              <button key={dm.id} className={`room-item ${is(`/dm/${dm.id}`) ? "active" : ""}`} onClick={() => navigate(`/dm/${dm.id}`)}>
-                <VibeAvatar user={dm.otherUser} uid={dm.otherUser?.uid} size={26} showVibe={true} />
-                <div className="room-item-info">
-                  <span className="room-name">{dm.otherUser?.displayName || "User"}</span>
-                  {dm.lastMessage && <span className="room-preview">{dm.lastMessage.content?.substring(0, 24)}</span>}
-                </div>
-                {dm.unread?.[profile?.uid] > 0 && <span className="unread-badge">{dm.unread[profile.uid]}</span>}
-              </button>
-            ))}
-            {dms.length === 0 && groups.length === 0 && (
-              <div className="sidebar-empty">No messages yet.<br />Search to start chatting!</div>
+            {dms.length === 0 && groups.length === 0 ? (
+              <div className="sidebar-empty">
+                No conversations yet.<br />
+                <button
+                  className="sidebar-new-dm-btn"
+                  onClick={() => setShowSearch(true)}
+                >
+                  + Start a conversation
+                </button>
+              </div>
+            ) : dms.length === 0 ? (
+              <div className="sidebar-empty-small">No direct messages yet.</div>
+            ) : (
+              dms.map(dm => (
+                <button
+                  key={dm.id}
+                  className={`room-item ${is(`/dm/${dm.id}`) ? "active" : ""}`}
+                  onClick={() => navigate(`/dm/${dm.id}`)}
+                >
+                  <VibeAvatar user={dm.otherUser} uid={dm.otherUser?.uid} size={26} showVibe={true} />
+                  <div className="room-item-info">
+                    <span className="room-name">{dm.otherUser?.displayName || "User"}</span>
+                    {dm.lastMessage && (
+                      <span className="room-preview">
+                        {dm.lastMessage.content?.substring(0, 28) || "📎 Attachment"}
+                      </span>
+                    )}
+                  </div>
+                  {dm.unread?.[profile?.uid] > 0 && (
+                    <span className="unread-badge">{dm.unread[profile.uid]}</span>
+                  )}
+                </button>
+              ))
             )}
           </nav>
         </>
