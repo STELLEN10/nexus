@@ -2845,52 +2845,60 @@ body {
 /* ═══════════════════════════════════════════
    NOTIFICATION PANEL
    ═══════════════════════════════════════════ */
-/* ── Replace the existing .notif-panel rule in index.css ── */
+/* ── Add to index.css — replaces old .notif-panel rule ── */
 
-.notif-panel {
-  position: absolute;
-  top: 0;
-  left: calc(100% + 10px);   /* pops out to the RIGHT of the rail button */
-  width: 320px;
+/* The centered modal box */
+.notif-modal {
   background: var(--bg-1);
   border: 1.5px solid var(--border-2);
   border-radius: var(--r-xl);
-  box-shadow: 0 16px 48px rgba(0,0,0,.7), 0 0 30px var(--glow-purple);
-  z-index: 50;
+  width: 100%;
+  max-width: 460px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  animation: notif-enter .18s cubic-bezier(.16,1,.3,1);
+  box-shadow: 0 0 40px var(--glow-purple), 0 24px 64px rgba(0,0,0,.7);
+  animation: modal-enter .2s cubic-bezier(.16,1,.3,1);
 }
 
-@keyframes notif-enter {
-  from { opacity: 0; transform: translateX(-8px) scale(.97); }
-  to   { opacity: 1; transform: translateX(0)    scale(1);   }
+@keyframes modal-enter {
+  from { opacity: 0; transform: scale(.96) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);    }
 }
 
-/* Mobile: position above the bottom tab bar instead */
+/* Header */
+.notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.notif-panel-head span {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Scrollable list */
+.notif-panel-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notif-panel-list::-webkit-scrollbar { width: 3px; }
+.notif-panel-list::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+/* Mobile: sheet from bottom */
 @media (max-width: 767px) {
-  .notif-panel {
-    position: fixed;
-    top: auto;
-    bottom: calc(60px + env(safe-area-inset-bottom) + 8px);
-    left: 8px;
-    right: 8px;
-    width: auto;
-    animation: notif-enter-up .18s cubic-bezier(.16,1,.3,1);
-  }
-  @keyframes notif-enter-up {
-    from { opacity: 0; transform: translateY(8px) scale(.97); }
-    to   { opacity: 1; transform: translateY(0)   scale(1);   }
+  .notif-modal {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
   }
 }
-
-/* Tablet: keep it right of rail but don't overflow */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .notif-panel {
-    left: calc(100% + 8px);
-    width: 300px;
-  }
-}
-
 /* ═══════════════════════════════════════════
    SEARCH MODAL
    ═══════════════════════════════════════════ */
