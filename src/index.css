@@ -4553,3 +4553,337 @@ body {
     max-height: 80vh;
   }
 }
+
+html, body, #root {
+  height: 100%;
+  height: 100dvh;
+}
+ 
+.shell {
+  height: 100dvh;
+}
+ 
+.chat-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Ensure input sticks to bottom above keyboard */
+  position: relative;
+}
+ 
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+ 
+/* Input bar always at bottom, moves up with keyboard */
+.input-bar {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+ 
+/* iOS safari safe area for input bar */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .input-bar {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+ 
+/* ── 2. Fix search modal staying at bottom ────────────── */
+@media (max-width: 767px) {
+  /* Search modal slides up to avoid keyboard */
+  .search-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 100dvh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+ 
+  .search-results {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+ 
+  /* ── 3. Settings not squeezed on mobile ── */
+  .settings-modal {
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    max-width: 100%;
+  }
+ 
+  /* Nav becomes horizontal scrollable tab strip */
+  .settings-nav {
+    width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: auto;
+  }
+ 
+  /* Hide user pill on mobile settings */
+  .settings-nav-user { display: none; }
+ 
+  .settings-nav-header {
+    display: none; /* header is in content area on mobile */
+  }
+ 
+  .settings-nav-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 8px 12px;
+    gap: 6px;
+    width: 100%;
+  }
+ 
+  .settings-nav-list::-webkit-scrollbar { display: none; }
+ 
+  .settings-nav-btn {
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 12px;
+    font-size: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 60px;
+    align-items: center;
+  }
+ 
+  .settings-nav-icon { font-size: 18px; }
+ 
+  .settings-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+ 
+  .settings-content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+ 
+  /* Close button in content header on mobile */
+  .settings-mobile-close {
+    display: flex;
+  }
+ 
+  /* ── 4. Notification bell in bottom tab bar ── */
+  .bottom-tab-bar {
+    display: flex;
+  }
+ 
+  /* The notification tab shows in bottom bar */
+  .bottom-notif-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    font-family: var(--font);
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 4px;
+    position: relative;
+    transition: color .15s;
+  }
+ 
+  .bottom-notif-tab.has-unread { color: var(--accent-2); }
+ 
+  .bottom-notif-badge {
+    position: absolute;
+    top: 2px;
+    right: calc(50% - 18px);
+    min-width: 15px;
+    height: 15px;
+    background: var(--red);
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    box-shadow: 0 0 8px rgba(239,68,68,.6);
+  }
+ 
+  /* ── 5. Avatar full-view overlay ── */
+  .avatar-full-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.92);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    animation: fade-in .2s ease;
+    backdrop-filter: blur(8px);
+  }
+ 
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+ 
+  .avatar-full-img {
+    width: min(80vw, 320px);
+    height: min(80vw, 320px);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--border-2);
+    box-shadow: 0 0 40px var(--glow-purple);
+  }
+ 
+  .avatar-full-initials {
+    width: min(80vw, 320px);
+    height: min(80vw, 320px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(48px, 15vw, 96px);
+    font-weight: 800;
+    color: #fff;
+    border: 3px solid var(--border-2);
+    box-shadow: 0 0 40px var(--glow-purple);
+  }
+ 
+  .avatar-full-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.02em;
+  }
+ 
+  .avatar-full-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s;
+  }
+ 
+  .avatar-full-close:hover { background: rgba(255,255,255,.2); }
+}
+ 
+/* Avatar full-view works on all screen sizes */
+.avatar-full-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(8px);
+  animation: fade-in .2s ease;
+  cursor: pointer;
+}
+ 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+ 
+.avatar-full-img {
+  width: min(80vw, 360px);
+  height: min(80vw, 360px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,.2);
+  box-shadow: 0 0 60px var(--glow-purple), 0 0 100px var(--glow-cyan);
+  animation: avatar-pop .25s cubic-bezier(.34,1.56,.64,1);
+}
+ 
+.avatar-full-initials {
+  width: min(80vw, 360px);
+  height: min(80vw, 360px);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(48px, 15vw, 96px);
+  font-weight: 800;
+  color: #fff;
+  border: 3px solid rgba(255,255,255,.2);
+  box-shadow: 0 0 60px var(--glow-purple);
+  animation: avatar-pop .25s cubic-bezier(.34,1.56,.64,1);
+}
+ 
+@keyframes avatar-pop {
+  from { transform: scale(.85); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+ 
+.avatar-full-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.02em;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+}
+ 
+.avatar-full-handle {
+  font-size: 14px;
+  color: rgba(255,255,255,.5);
+}
+ 
+.avatar-full-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 38px;
+  height: 38px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: background .15s;
+}
+ 
+.avatar-full-close:hover { background: rgba(255,255,255,.2); }
+ 
+/* ── Tappable avatar cursor ── */
+.avatar-tappable { cursor: pointer; }
