@@ -4,13 +4,14 @@ import { useAuth } from "../context/AuthContext";
 import { useRooms, usePresence } from "../hooks/useChat";
 import { useDMs, useDMRequests } from "../hooks/useDMs";
 import { useGroupDMs } from "../hooks/useGroupDMs";
-import { useVibe, VIBES } from "../hooks/useVibe";
+import { useVibe } from "../hooks/useVibe";
 import VibeAvatar from "../components/vibe/VibeAvatar";
 import VibePicker from "../components/vibe/VibePicker";
 import UserSearch from "../components/dm/UserSearch";
 import DMRequestsBadge from "../components/dm/DMRequestsBadge";
 import CreateGroupModal from "../components/dm/CreateGroupModal";
 import NotificationBell from "../components/shared/NotificationBell";
+import NexusLogo from "../components/shared/NexusLogo";
 
 export default function MainLayout() {
   const { profile, logout } = useAuth();
@@ -31,7 +32,11 @@ export default function MainLayout() {
   const vibeRef = useRef();
   const sidebarRef = useRef();
   usePresence();
+
   const is = (path) => location.pathname.startsWith(path);
+
+  // Sidebar is only useful on chat/dm/group routes
+  const hasSidebar = is("/chat") || is("/dm") || is("/group");
 
   useEffect(() => {
     const h = (e) => { if (vibeRef.current && !vibeRef.current.contains(e.target)) setShowVibePicker(false); };
@@ -60,10 +65,7 @@ export default function MainLayout() {
 
   const SidebarContent = () => (
     <>
-      {/* ── Feed sidebar ── */}
-      {is("/feed") && <div className="sidebar-head"><span>Home feed</span></div>}
-
-      {/* ── Channels sidebar ── */}
+      {/* ── Channels ── */}
       {is("/chat") && (
         <>
           <div className="sidebar-head">
@@ -97,7 +99,7 @@ export default function MainLayout() {
         </>
       )}
 
-      {/* ── Messages sidebar — always fully rendered when on /dm or /group ── */}
+      {/* ── Messages ── */}
       {(is("/dm") || is("/group")) && (
         <>
           <div className="sidebar-head">
@@ -111,10 +113,7 @@ export default function MainLayout() {
               </button>
             </div>
           </div>
-
           <DMRequestsBadge />
-
-          {/* Groups */}
           {groups.length > 0 && (
             <>
               <div className="sidebar-section-label">Groups</div>
@@ -132,16 +131,11 @@ export default function MainLayout() {
               <div className="sidebar-section-label">Direct</div>
             </>
           )}
-
-          {/* Direct messages — always show past conversations */}
           <nav className="room-list">
             {dms.length === 0 && groups.length === 0 ? (
               <div className="sidebar-empty">
                 No conversations yet.<br />
-                <button
-                  className="sidebar-new-dm-btn"
-                  onClick={() => setShowSearch(true)}
-                >
+                <button className="sidebar-new-dm-btn" onClick={() => setShowSearch(true)}>
                   + Start a conversation
                 </button>
               </div>
@@ -157,15 +151,9 @@ export default function MainLayout() {
                   <VibeAvatar user={dm.otherUser} uid={dm.otherUser?.uid} size={26} showVibe={true} />
                   <div className="room-item-info">
                     <span className="room-name">{dm.otherUser?.displayName || "User"}</span>
-                    {dm.lastMessage && (
-                      <span className="room-preview">
-                        {dm.lastMessage.content?.substring(0, 28) || "📎 Attachment"}
-                      </span>
-                    )}
+                    {dm.lastMessage && <span className="room-preview">{dm.lastMessage.content?.substring(0, 28) || "📎 Attachment"}</span>}
                   </div>
-                  {dm.unread?.[profile?.uid] > 0 && (
-                    <span className="unread-badge">{dm.unread[profile.uid]}</span>
-                  )}
+                  {dm.unread?.[profile?.uid] > 0 && <span className="unread-badge">{dm.unread[profile.uid]}</span>}
                 </button>
               ))
             )}
@@ -177,13 +165,11 @@ export default function MainLayout() {
 
   return (
     <div className="shell">
-      {/* ── Desktop / Tablet Rail ── */}
+      {/* ── Rail ── */}
       <nav className="rail">
         <div className="rail-top">
           <div className="rail-logo">
-            <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-              <path d="M14 2C7.373 2 2 7.373 2 14c0 2.09.536 4.052 1.474 5.762L2 26l6.48-1.448A11.952 11.952 0 0014 26c6.627 0 12-5.373 12-12S20.627 2 14 2z" fill="currentColor" />
-            </svg>
+            <NexusLogo size={36} />
           </div>
           <button className={`rail-btn ${is("/feed") ? "active" : ""}`} onClick={() => navigate("/feed")} title="Home">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -227,12 +213,14 @@ export default function MainLayout() {
         </div>
       </nav>
 
-      {/* ── Desktop Sidebar ── */}
-      <aside className="sidebar desktop-sidebar">
-        <SidebarContent />
-      </aside>
+      {/* ── Desktop Sidebar — only on chat/dm/group routes ── */}
+      {hasSidebar && (
+        <aside className="sidebar desktop-sidebar">
+          <SidebarContent />
+        </aside>
+      )}
 
-      {/* ── Tablet/Mobile Sidebar Drawer ── */}
+      {/* ── Tablet/Mobile Drawer — always available for chat/dm ── */}
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <aside ref={sidebarRef} className={`sidebar drawer-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="drawer-sidebar-head">
