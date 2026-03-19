@@ -5,7 +5,7 @@ import { useDMMessages } from "../hooks/useDMs";
 import { useOnlineStatus } from "../hooks/useUsers";
 import VibeAvatar from "../components/vibe/VibeAvatar";
 import DMBubble from "../components/dm/DMBubble";
-import StickerPicker from "../components/dm/StickerPicker";
+import StickerPickerModal from "../components/dm/StickerPickerModal";
 import VoiceRecorder from "../components/dm/VoiceRecorder";
 
 export default function DMPage() {
