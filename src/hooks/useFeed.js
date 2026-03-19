@@ -1,13 +1,24 @@
+// src/hooks/useFeed.js — hardened version
 import { useState, useEffect, useCallback } from "react";
-import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, where, serverTimestamp, arrayUnion, arrayRemove, increment, limit } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot,
+         query, orderBy, where, serverTimestamp, arrayUnion,
+         arrayRemove, increment, limit } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import {
+  validatePostContent, validateComment, validateImageFile,
+  sanitizeText, LIMITS
+} from "../lib/validation";
+import { checkPostLimit, checkReactionLimit, formatRetryAfter } from "../lib/rateLimiter";
+
+const ALLOWED_REACTIONS = ["❤️","😂","🔥","😮","👏","😢"];
 
 export function useFeed(profileUid = null) {
   const { user, profile } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     if (!user) return;
     const q = profileUid
@@ -18,29 +29,46 @@ export function useFeed(profileUid = null) {
   }, [user, profileUid]);
 
   const createPost = useCallback(async ({ content, image, wallOwner }) => {
+    // Rate limit
+    const rl = checkPostLimit(user.uid);
+    if (!rl.allowed) throw new Error(`Posting too fast. Try again in ${formatRetryAfter(rl.retryAfterMs)}.`);
+
+    // Validate content
+    const cv = validatePostContent(content || "");
+    if (!cv.ok) throw new Error(cv.error);
+
+    // If no content and no image, reject
+    if (!cv.value && !image) throw new Error("Post must have content or an image.");
+
+    let imageUrl = "";
+    if (image) {
+      const fv = validateImageFile(image);
+      if (!fv.ok) throw new Error(fv.error);
+      const path = `posts/${user.uid}/${Date.now()}.${image.name.split(".").pop().toLowerCase()}`;
+      const snap = await uploadBytes(storageRef(storage, path), fv.value);
+      imageUrl = await getDownloadURL(snap.ref);
+    }
+
     const post = {
-      content: content || "",
+      content: cv.value,
       authorId: user.uid,
-      authorName: profile?.displayName || user.displayName || "User",
-      authorAvatar: profile?.avatar || "",   // ← use real avatar
+      authorName: sanitizeText(profile?.displayName || "User").slice(0, 32),
+      authorAvatar: profile?.avatar || "",
       wallOwner: wallOwner || user.uid,
-      imageUrl: "",
+      imageUrl,
       likes: [],
       reactions: {},
       commentCount: 0,
       createdAt: serverTimestamp(),
     };
-    if (image) {
-      const path = `posts/${user.uid}/${Date.now()}.${image.name.split(".").pop()}`;
-      const snap = await uploadBytes(storageRef(storage, path), image);
-      post.imageUrl = await getDownloadURL(snap.ref);
-    }
+
     const postRef = await addDoc(collection(db, "posts"), post);
+
     if (wallOwner && wallOwner !== user.uid) {
       await addDoc(collection(db, "notifications"), {
         type: "wall_post",
         fromUid: user.uid,
-        fromUsername: profile?.displayName || user.displayName || "Someone",
+        fromUsername: sanitizeText(profile?.displayName || "Someone").slice(0, 32),
         toUid: wallOwner,
         postId: postRef.id,
         message: "posted on your wall",
@@ -51,15 +79,26 @@ export function useFeed(profileUid = null) {
   }, [user, profile]);
 
   const likePost = useCallback(async (postId, liked) => {
-    await updateDoc(doc(db, "posts", postId), { likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
+    if (!postId || typeof postId !== "string") return;
+    await updateDoc(doc(db, "posts", postId), {
+      likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid)
+    });
   }, [user]);
 
   const reactPost = useCallback(async (postId, emoji, post) => {
+    if (!ALLOWED_REACTIONS.includes(emoji)) return;
+    const rl = checkReactionLimit(user.uid);
+    if (!rl.allowed) return;
     const userReaction = post.reactions?.[user.uid];
-    await updateDoc(doc(db, "posts", postId), { [`reactions.${user.uid}`]: userReaction === emoji ? null : emoji });
+    await updateDoc(doc(db, "posts", postId), {
+      [`reactions.${user.uid}`]: userReaction === emoji ? null : emoji
+    });
   }, [user]);
 
-  const deletePost = useCallback(async (postId) => { await deleteDoc(doc(db, "posts", postId)); }, []);
+  const deletePost = useCallback(async (postId) => {
+    if (!postId || typeof postId !== "string") return;
+    await deleteDoc(doc(db, "posts", postId));
+  }, []);
 
   return { posts, loading, createPost, likePost, reactPost, deletePost };
 }
@@ -88,19 +127,24 @@ export function useComments(postId) {
     const unsub = onSnapshot(q, snap => setComments(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
     return unsub;
   }, [postId]);
+
   const addComment = useCallback(async (content) => {
+    const v = validateComment(content);
+    if (!v.ok) throw new Error(v.error);
     await addDoc(collection(db, "posts", postId, "comments"), {
-      content,
+      content: v.value,
       authorId: user.uid,
-      authorName: profile?.displayName || "User",
-      authorAvatar: profile?.avatar || "",   // ← use real avatar in comments too
+      authorName: sanitizeText(profile?.displayName || "User").slice(0, 32),
+      authorAvatar: profile?.avatar || "",
       createdAt: serverTimestamp(),
     });
     await updateDoc(doc(db, "posts", postId), { commentCount: increment(1) });
   }, [postId, user, profile]);
+
   const deleteComment = useCallback(async (commentId) => {
     await deleteDoc(doc(db, "posts", postId, "comments", commentId));
     await updateDoc(doc(db, "posts", postId), { commentCount: increment(-1) });
   }, [postId]);
+
   return { comments, addComment, deleteComment };
 }
