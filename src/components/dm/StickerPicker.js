@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
-const GIPHY_KEY = "dc6zaTOxFJmzC";
+const GIPHY_KEY = process.env.REACT_APP_GIPHY_KEY;
 const PACKS = [{ label: "😄 Funny", query: "funny" },{ label: "🔥 Hype", query: "hype excited" },{ label: "🐱 Cats", query: "cat" },{ label: "💯 Vibes", query: "vibes" },{ label: "🎉 Party", query: "party" }];
 export default function StickerPicker({ onSelect, onClose }) {
   const { user } = useAuth();
