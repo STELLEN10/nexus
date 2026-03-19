@@ -4,7 +4,7 @@ import { useMessages, useTyping, useRooms } from "../hooks/useChat";
 import { useAuth } from "../context/AuthContext";
 import MessageBubble from "../components/chat/MessageBubble";
 import TypingIndicator from "../components/chat/TypingIndicator";
-import StickerPicker from "../components/dm/StickerPicker";
+import StickerPickerModal from "../components/dm/StickerPickerModal";
 export default function ChatPage() {
   const { roomId } = useParams();
   const { user } = useAuth();
