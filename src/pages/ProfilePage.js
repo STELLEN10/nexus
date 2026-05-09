@@ -8,7 +8,10 @@ import { useUserProfile } from "../hooks/useUsers";
 import { useFeed } from "../hooks/useFeed";
 import { useDMRequests } from "../hooks/useDMs";
 import { useFollow, useFollowCounts } from "../hooks/useFollow";
+import { useBadges } from "../hooks/useBadges";
 import Avatar from "../components/shared/Avatar";
+import BadgeDisplay from "../components/shared/BadgeDisplay";
+import TipModal from "../components/shared/TipModal";
 import PostCard from "../components/social/PostCard";
 import CreatePost from "../components/social/CreatePost";
 import SettingsModal from "../components/settings/SettingsModal";
@@ -22,8 +25,6 @@ function FollowListModal({ uid, mode, onClose }) {
   useEffect(() => {
     if (!uid) return;
     setLoading(true);
-    // followers → people who follow uid  (followingId == uid, return followerId)
-    // following → people uid follows     (followerId  == uid, return followingId)
     const filterField = mode === "followers" ? "followingId" : "followerId";
     const targetField = mode === "followers" ? "followerId"  : "followingId";
     getDocs(query(collection(db, "follows"), where(filterField, "==", uid)))
@@ -97,14 +98,16 @@ export default function ProfilePage() {
   const { isFollowing, follow, unfollow } = useFollow(isOwnProfile ? null : uid);
   const counts = useFollowCounts(uid);
   const { sendRequest } = useDMRequests();
+  const { badges } = useBadges(uid);
 
   // UI state
-  const [editingBio, setEditingBio]       = useState(false);
-  const [bio, setBio]                     = useState("");
+  const [editingBio, setEditingBio]           = useState(false);
+  const [bio, setBio]                         = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [dmStatus, setDmStatus]           = useState(null);
-  const [followModal, setFollowModal]     = useState(null); // "followers" | "following" | null
-  const [showSettings, setShowSettings]   = useState(false);
+  const [dmStatus, setDmStatus]               = useState(null);
+  const [followModal, setFollowModal]         = useState(null);
+  const [showSettings, setShowSettings]       = useState(false);
+  const [showTip, setShowTip]                 = useState(false);
 
   // Username editing state
   const [editingUsername, setEditingUsername] = useState(false);
@@ -112,8 +115,8 @@ export default function ProfilePage() {
   const [usernameError, setUsernameError]     = useState("");
   const [savingUsername, setSavingUsername]   = useState(false);
 
-  const avatarInputRef    = useRef();
-  const usernameInputRef  = useRef();
+  const avatarInputRef   = useRef();
+  const usernameInputRef = useRef();
 
   // ── Avatar upload ────────────────────────────────────────
   const handleAvatarChange = async (e) => {
@@ -144,10 +147,10 @@ export default function ProfilePage() {
 
   const handleUsernameChange = async () => {
     const trimmed = newUsername.trim().toLowerCase();
-    if (!trimmed)              { setUsernameError("Username can't be empty.");              return; }
-    if (trimmed.length < 3)    { setUsernameError("Must be at least 3 characters.");        return; }
-    if (trimmed.length > 20)   { setUsernameError("Max 20 characters.");                    return; }
-    if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError("Letters, numbers, underscores only."); return; }
+    if (!trimmed)                       { setUsernameError("Username can't be empty.");              return; }
+    if (trimmed.length < 3)             { setUsernameError("Must be at least 3 characters.");        return; }
+    if (trimmed.length > 20)            { setUsernameError("Max 20 characters.");                    return; }
+    if (!/^[a-z0-9_]+$/.test(trimmed)) { setUsernameError("Letters, numbers, underscores only.");   return; }
     if (trimmed === profile.username)   { setEditingUsername(false); return; }
 
     setSavingUsername(true);
@@ -172,7 +175,7 @@ export default function ProfilePage() {
     setNewUsername("");
   };
 
-  // ── Create post — always stamps correct wallOwner ────────
+  // ── Create post ──────────────────────────────────────────
   const handleCreatePost = useCallback(async (data) => {
     await createPost({ ...data, wallOwner: uid });
   }, [createPost, uid]);
@@ -225,9 +228,11 @@ export default function ProfilePage() {
                   <button className="btn-msg" onClick={handleSendDM}>
                     {dmStatus === "sent" ? "✓ Sent" : "💬 Message"}
                   </button>
+                  <button className="btn-msg" onClick={() => setShowTip(true)} title="Send coins">
+                    🪙 Tip
+                  </button>
                 </>
               ) : (
-                /* Settings button — own profile only */
                 <button
                   className="profile-settings-btn"
                   onClick={() => setShowSettings(true)}
@@ -288,12 +293,18 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Follower / following counts — clickable on own profile */}
+          {/* Badges */}
+          {badges.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <BadgeDisplay badgeIds={badges} size="md" />
+            </div>
+          )}
+
+          {/* Follower / following counts */}
           <div className="profile-counts">
             <div
               className={`profile-count ${isOwnProfile ? "clickable" : ""}`}
               onClick={() => isOwnProfile && setFollowModal("followers")}
-              title={isOwnProfile ? "View followers" : ""}
             >
               <strong>{counts.followers}</strong>
               <span>followers</span>
@@ -301,7 +312,6 @@ export default function ProfilePage() {
             <div
               className={`profile-count ${isOwnProfile ? "clickable" : ""}`}
               onClick={() => isOwnProfile && setFollowModal("following")}
-              title={isOwnProfile ? "View following" : ""}
             >
               <strong>{counts.following}</strong>
               <span>following</span>
@@ -341,8 +351,6 @@ export default function ProfilePage() {
               {profile.bio || (isOwnProfile ? <span className="bio-placeholder">+ Add a bio</span> : "")}
             </p>
           )}
-
-          {/* profile link row intentionally removed */}
         </div>
       </div>
 
@@ -378,6 +386,12 @@ export default function ProfilePage() {
       )}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+      {showTip && profile && (
+        <TipModal
+          toUser={{ uid, displayName: profile.displayName, username: profile.username, avatar: profile.avatar }}
+          onClose={() => setShowTip(false)}
+        />
       )}
     </div>
   );
