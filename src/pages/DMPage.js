@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useDMMessages } from "../hooks/useDMs";
@@ -11,13 +12,14 @@ import VoiceRecorder from "../components/dm/VoiceRecorder";
 
 function WallpaperPicker({ dmId, current, onClose }) {
   return (
-    <div style={{
-      position: "absolute", bottom: "calc(100% + 8px)", right: 0,
-      background: "var(--bg-1)", border: "1.5px solid var(--border-2)",
-      borderRadius: "var(--r-xl)", padding: 16, zIndex: 50,
-      boxShadow: "0 8px 32px rgba(0,0,0,.7), 0 0 20px var(--glow-purple)",
-      width: 280,
-    }}>
+    <div className="modal-bg" onClick={onClose}>
+      <div style={{
+        position: "relative",
+        background: "var(--bg-1)", border: "1.5px solid var(--border-2)",
+        borderRadius: "var(--r-xl)", padding: 16, zIndex: 50,
+        boxShadow: "0 8px 32px rgba(0,0,0,.7), 0 0 20px var(--glow-purple)",
+        width: 280,
+      }} onClick={e => e.stopPropagation()}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", marginBottom: 10, textTransform: "uppercase", letterSpacing: ".06em" }}>
         Chat wallpaper
       </div>
@@ -43,6 +45,7 @@ function WallpaperPicker({ dmId, current, onClose }) {
             {w.label}
           </button>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -144,11 +147,14 @@ export default function DMPage() {
               </svg>
             </button>
             {showWallpaper && (
-              <WallpaperPicker
-                dmId={dmId}
-                current={wallpaper.id}
-                onClose={() => setShowWallpaper(false)}
-              />
+              createPortal(
+                <WallpaperPicker
+                  dmId={dmId}
+                  current={wallpaper.id}
+                  onClose={() => setShowWallpaper(false)}
+                />,
+                document.body
+              )
             )}
           </div>
         </div>
