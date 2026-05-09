@@ -135,47 +135,81 @@ function AccountSection({ profile }) {
   );
 }
 
-// ── Appearance (with Light/Dark toggle) ───────────────────
+// ── Appearance (Light/Dark + Custom colour themes) ────────
 function AppearanceSection() {
-  const { theme, setDark, setLight } = useTheme();
+  const { theme, setDark, setLight, colorTheme, setColorTheme, COLOR_THEMES } = useTheme();
   const [compact, setCompact] = useState(() => localStorage.getItem("nexus_compact") === "true");
   const [fontSize, setFontSize] = useState(() => localStorage.getItem("nexus_fontsize") || "medium");
+
   const handleCompact = (v) => { setCompact(v); localStorage.setItem("nexus_compact", v); };
-  const handleFont = (s) => { setFontSize(s); localStorage.setItem("nexus_fontsize", s); document.documentElement.style.setProperty("--chat-font-size", { small:"13px", medium:"14px", large:"16px" }[s]); };
+  const handleFont = (s) => {
+    setFontSize(s);
+    localStorage.setItem("nexus_fontsize", s);
+    document.documentElement.style.setProperty("--chat-font-size", { small: "13px", medium: "14px", large: "16px" }[s]);
+  };
 
   return (
     <>
+      {/* Light / Dark */}
       <Divider label="Colour theme" />
       <div style={{ padding: "8px 24px 20px" }}>
-        <span style={{ fontSize:13, fontWeight:600, display:"block", marginBottom:12 }}>App theme</span>
-        <div style={{ display:"flex", gap:12 }}>
-          {/* Dark */}
-          <button onClick={setDark} style={{ flex:1, padding:"16px 12px", borderRadius:"var(--r-lg)", cursor:"pointer", background: theme==="dark" ? "rgba(124,58,237,.18)" : "var(--bg-2)", border:`2px solid ${theme==="dark" ? "var(--accent)" : "var(--border)"}`, display:"flex", flexDirection:"column", alignItems:"center", gap:8, transition:"all .18s", boxShadow: theme==="dark" ? "0 0 20px rgba(124,58,237,.4)" : "none" }}>
-            <div style={{ width:52, height:34, borderRadius:8, background:"#06060a", border:"1px solid rgba(124,58,237,.4)", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
-              <div style={{ width:6, height:6, borderRadius:"50%", background:"#7c3aed", boxShadow:"0 0 6px #7c3aed" }} />
-              <div style={{ width:6, height:6, borderRadius:"50%", background:"#06b6d4", boxShadow:"0 0 6px #06b6d4" }} />
+        <span style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 12 }}>App theme</span>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button onClick={setDark} style={{ flex: 1, padding: "16px 12px", borderRadius: "var(--r-lg)", cursor: "pointer", background: theme === "dark" ? "rgba(124,58,237,.18)" : "var(--bg-2)", border: `2px solid ${theme === "dark" ? "var(--accent)" : "var(--border)"}`, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all .18s", boxShadow: theme === "dark" ? "0 0 20px rgba(124,58,237,.4)" : "none" }}>
+            <div style={{ width: 52, height: 34, borderRadius: 8, background: "#06060a", border: "1px solid rgba(124,58,237,.4)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#7c3aed", boxShadow: "0 0 6px #7c3aed" }} />
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#06b6d4", boxShadow: "0 0 6px #06b6d4" }} />
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color: theme==="dark" ? "var(--accent-2)" : "var(--text-3)" }}>🌑 Dark</span>
-            {theme==="dark" && <span style={{ fontSize:10, background:"var(--accent-bg)", color:"var(--accent-2)", padding:"2px 8px", borderRadius:20, border:"1px solid var(--accent-bd)" }}>Active</span>}
+            <span style={{ fontSize: 12, fontWeight: 700, color: theme === "dark" ? "var(--accent-2)" : "var(--text-3)" }}>🌑 Dark</span>
+            {theme === "dark" && <span style={{ fontSize: 10, background: "var(--accent-bg)", color: "var(--accent-2)", padding: "2px 8px", borderRadius: 20, border: "1px solid var(--accent-bd)" }}>Active</span>}
           </button>
-          {/* Light */}
-          <button onClick={setLight} style={{ flex:1, padding:"16px 12px", borderRadius:"var(--r-lg)", cursor:"pointer", background: theme==="light" ? "rgba(124,58,237,.10)" : "var(--bg-2)", border:`2px solid ${theme==="light" ? "var(--accent)" : "var(--border)"}`, display:"flex", flexDirection:"column", alignItems:"center", gap:8, transition:"all .18s", boxShadow: theme==="light" ? "0 0 20px rgba(124,58,237,.25)" : "none" }}>
-            <div style={{ width:52, height:34, borderRadius:8, background:"#f4f4fb", border:"1px solid rgba(124,58,237,.2)", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
-              <div style={{ width:6, height:6, borderRadius:"50%", background:"#7c3aed" }} />
-              <div style={{ width:6, height:6, borderRadius:"50%", background:"#0891b2" }} />
+          <button onClick={setLight} style={{ flex: 1, padding: "16px 12px", borderRadius: "var(--r-lg)", cursor: "pointer", background: theme === "light" ? "rgba(124,58,237,.10)" : "var(--bg-2)", border: `2px solid ${theme === "light" ? "var(--accent)" : "var(--border)"}`, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all .18s", boxShadow: theme === "light" ? "0 0 20px rgba(124,58,237,.25)" : "none" }}>
+            <div style={{ width: 52, height: 34, borderRadius: 8, background: "#f4f4fb", border: "1px solid rgba(124,58,237,.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#7c3aed" }} />
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#0891b2" }} />
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color: theme==="light" ? "var(--accent-2)" : "var(--text-3)" }}>☀️ Light</span>
-            {theme==="light" && <span style={{ fontSize:10, background:"var(--accent-bg)", color:"var(--accent-2)", padding:"2px 8px", borderRadius:20, border:"1px solid var(--accent-bd)" }}>Active</span>}
+            <span style={{ fontSize: 12, fontWeight: 700, color: theme === "light" ? "var(--accent-2)" : "var(--text-3)" }}>☀️ Light</span>
+            {theme === "light" && <span style={{ fontSize: 10, background: "var(--accent-bg)", color: "var(--accent-2)", padding: "2px 8px", borderRadius: 20, border: "1px solid var(--accent-bd)" }}>Active</span>}
           </button>
         </div>
       </div>
 
+      {/* Accent colour picker */}
+      <Divider label="Accent colour" />
+      <div style={{ padding: "8px 24px 20px" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 12 }}>App accent</span>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {COLOR_THEMES.map(ct => (
+            <button
+              key={ct.id}
+              onClick={() => setColorTheme(ct.id)}
+              title={ct.label}
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: ct.preview,
+                border: colorTheme === ct.id ? "3px solid #fff" : "3px solid transparent",
+                cursor: "pointer",
+                boxShadow: colorTheme === ct.id ? `0 0 0 2px ${ct.preview}, 0 0 16px ${ct.preview}88` : "none",
+                transition: "all .18s",
+                transform: colorTheme === ct.id ? "scale(1.15)" : "scale(1)",
+              }}
+            />
+          ))}
+        </div>
+        <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-3)" }}>
+          Current: <span style={{ color: "var(--accent-2)", fontWeight: 700 }}>
+            {COLOR_THEMES.find(ct => ct.id === colorTheme)?.label || "Violet"}
+          </span>
+        </div>
+      </div>
+
+      {/* Display */}
       <Divider label="Display" />
       <Row icon="📐" label="Compact mode" desc="Show messages closer together" right={<Toggle on={compact} onChange={handleCompact} />} />
       <Row icon="🔡" label="Font size" desc="Adjust chat text size" right={
-        <div style={{ display:"flex", gap:4 }}>
-          {["Small","Medium","Large"].map(s => { const k=s.toLowerCase(); return (
-            <button key={k} onClick={() => handleFont(k)} style={{ background:fontSize===k?"var(--accent-bg)":"var(--bg-2)", border:`1.5px solid ${fontSize===k?"var(--accent-bd)":"var(--border)"}`, borderRadius:"var(--r-sm)", padding:"5px 10px", fontFamily:"var(--font)", fontSize:11, fontWeight:700, color:fontSize===k?"var(--accent-2)":"var(--text-3)", cursor:"pointer" }}>{s}</button>
+        <div style={{ display: "flex", gap: 4 }}>
+          {["Small", "Medium", "Large"].map(s => { const k = s.toLowerCase(); return (
+            <button key={k} onClick={() => handleFont(k)} style={{ background: fontSize === k ? "var(--accent-bg)" : "var(--bg-2)", border: `1.5px solid ${fontSize === k ? "var(--accent-bd)" : "var(--border)"}`, borderRadius: "var(--r-sm)", padding: "5px 10px", fontFamily: "var(--font)", fontSize: 11, fontWeight: 700, color: fontSize === k ? "var(--accent-2)" : "var(--text-3)", cursor: "pointer" }}>{s}</button>
           ); })}
         </div>
       } />
@@ -186,10 +220,10 @@ function AppearanceSection() {
 // ── Notifications ─────────────────────────────────────────
 function NotificationsSection() {
   const load = () => { try { return JSON.parse(localStorage.getItem("nexus_notif_prefs") || "{}"); } catch { return {}; } };
-  const defaults = { messages:true, mentions:true, follows:true, reactions:false, sounds:false };
+  const defaults = { messages: true, mentions: true, follows: true, reactions: false, sounds: false };
   const [prefs, setPrefs] = useState(load);
   const get = (k) => prefs[k] !== undefined ? prefs[k] : defaults[k];
-  const toggle = (k) => { const next={...prefs,[k]:!get(k)}; setPrefs(next); localStorage.setItem("nexus_notif_prefs",JSON.stringify(next)); };
+  const toggle = (k) => { const next = { ...prefs, [k]: !get(k) }; setPrefs(next); localStorage.setItem("nexus_notif_prefs", JSON.stringify(next)); };
   return (
     <>
       <Divider label="Push notifications" />
@@ -206,10 +240,10 @@ function NotificationsSection() {
 // ── Privacy ───────────────────────────────────────────────
 function PrivacySection() {
   const load = () => { try { return JSON.parse(localStorage.getItem("nexus_privacy_prefs") || "{}"); } catch { return {}; } };
-  const defaults = { showOnline:true, readReceipts:true, allowDMs:true };
+  const defaults = { showOnline: true, readReceipts: true, allowDMs: true };
   const [prefs, setPrefs] = useState(load);
   const get = (k) => prefs[k] !== undefined ? prefs[k] : defaults[k];
-  const toggle = (k) => { const next={...prefs,[k]:!get(k)}; setPrefs(next); localStorage.setItem("nexus_privacy_prefs",JSON.stringify(next)); };
+  const toggle = (k) => { const next = { ...prefs, [k]: !get(k) }; setPrefs(next); localStorage.setItem("nexus_privacy_prefs", JSON.stringify(next)); };
   return (
     <>
       <Divider label="Visibility" />
@@ -225,26 +259,29 @@ function PrivacySection() {
 
 // ── Help ──────────────────────────────────────────────────
 const FAQS = [
-  { q:"How do I start a conversation?",   a:"Go to Messages in the sidebar, click +, and search by username." },
-  { q:"How do channels work?",            a:"Channels are public or private group rooms. Click Channels in the rail to browse or create one." },
-  { q:"What are Vibes?",                  a:"Vibes are animated status rings around your avatar. Set yours with the smiley button at the bottom of the rail." },
-  { q:"How do Stories work?",             a:"Stories appear at the top of the feed and expire after 24 hours. Tap your avatar ring to create one." },
-  { q:"Can I unsend a message?",          a:"Yes — hover over a message you sent and click the trash icon. Both sides see a deleted notice." },
-  { q:"How do I change my username?",     a:"On your profile page, hover over your @username and click the pencil icon." },
-  { q:"How do I report someone?",         a:"Contact us at support@nexus.app for urgent reports." },
+  { q: "How do I start a conversation?",   a: "Go to Messages in the sidebar, click +, and search by username." },
+  { q: "How do channels work?",            a: "Channels are public or private group rooms. Click Channels in the rail to browse or create one." },
+  { q: "What are Vibes?",                  a: "Vibes are animated status rings around your avatar. Set yours with the smiley button at the bottom of the rail." },
+  { q: "How do Stories work?",             a: "Stories appear at the top of the feed and expire after 24 hours. Tap your avatar ring to create one." },
+  { q: "Can I unsend a message?",          a: "Yes — hover over a message you sent and click the trash icon. Both sides see a deleted notice." },
+  { q: "How do I change my username?",     a: "On your profile page, hover over your @username and click the pencil icon." },
+  { q: "How do I tip someone coins?",      a: "Visit their profile and tap the 🪙 Tip button next to the Message button." },
+  { q: "How do I change the chat wallpaper?", a: "Open any DM conversation and tap the image icon in the top-right corner." },
+  { q: "How do I report someone?",         a: "Contact us at support@nexus.app for urgent reports." },
 ];
+
 function HelpSection() {
   const [open, setOpen] = useState(null);
   return (
     <>
       <Divider label="Frequently asked questions" />
-      {FAQS.map((faq,i) => (
-        <div key={i} onClick={() => setOpen(open===i?null:i)} style={{ borderBottom:"1px solid var(--border)", cursor:"pointer" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"13px 24px", fontSize:13, fontWeight:600 }}>
+      {FAQS.map((faq, i) => (
+        <div key={i} onClick={() => setOpen(open === i ? null : i)} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 24px", fontSize: 13, fontWeight: 600 }}>
             <span>{faq.q}</span>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ transform:open===i?"rotate(180deg)":"none", transition:"transform .2s", flexShrink:0 }}><path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ transform: open === i ? "rotate(180deg)" : "none", transition: "transform .2s", flexShrink: 0 }}><path d="M3 6l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
-          {open===i && <div style={{ padding:"4px 24px 14px", fontSize:13, color:"var(--text-2)", lineHeight:1.65, borderTop:"1px solid var(--border)" }}>{faq.a}</div>}
+          {open === i && <div style={{ padding: "4px 24px 14px", fontSize: 13, color: "var(--text-2)", lineHeight: 1.65, borderTop: "1px solid var(--border)" }}>{faq.a}</div>}
         </div>
       ))}
       <Divider label="Contact" />
@@ -256,23 +293,24 @@ function HelpSection() {
 
 // ── Legal ─────────────────────────────────────────────────
 const LEGAL = {
-  tos: { title:"Terms of Service", body:`Last updated: March 2026\n\n1. ACCEPTANCE\nBy using Nexus you agree to these terms.\n\n2. ELIGIBILITY\nYou must be 13 or older.\n\n3. YOUR ACCOUNT\nYou are responsible for all activity under your account.\n\n4. ACCEPTABLE USE\nYou agree NOT to:\n• Post harmful, harassing, or hateful content\n• Impersonate any person or organisation\n• Upload malware or attempt to hack the service\n• Scrape other users' data without consent\n\n5. CONTENT\nYou keep ownership of what you post. By posting you grant Nexus a non-exclusive licence to display it within the platform.\n\n6. TERMINATION\nWe may suspend accounts that violate these terms.\n\n7. DISCLAIMER\nService is provided "as is" without warranties.\n\n8. CONTACT\nlegal@nexus.app` },
-  privacy: { title:"Privacy Policy", body:`Last updated: March 2026\n\n1. DATA WE COLLECT\n• Account: username, email, profile photo\n• Content: posts, messages, stories\n• Usage: features used, session duration\n• Device: browser, IP address\n\n2. HOW WE USE IT\n• To operate and improve Nexus\n• To deliver notifications you've opted into\n• To enforce our Terms of Service\n\n3. SHARING\nWe never sell your data. We share only with infrastructure providers (Firebase/Google) and law enforcement when legally required.\n\n4. YOUR RIGHTS\nAccess · Correct · Delete · Export your data at any time from Settings → Account.\n\n5. CONTACT\nprivacy@nexus.app` },
-  community: { title:"Community Guidelines", body:`BE KIND & RESPECTFUL\nTreat everyone with dignity.\n\nNO HATE SPEECH\nContent targeting people based on race, religion, gender, sexuality, or disability is banned.\n\nNO HARASSMENT\nNo stalking, threatening, or bullying.\n\nKEEP IT LEGAL\nNo illegal content or activity.\n\nNO SPAM\nNo flood posting or bots.\n\nPROTECT MINORS\nContent endangering minors is strictly forbidden.\n\nENFORCEMENT\nViolations may result in removal, suspension, or permanent ban.` },
+  tos: { title: "Terms of Service", body: `Last updated: March 2026\n\n1. ACCEPTANCE\nBy using Nexus you agree to these terms.\n\n2. ELIGIBILITY\nYou must be 13 or older.\n\n3. YOUR ACCOUNT\nYou are responsible for all activity under your account.\n\n4. ACCEPTABLE USE\nYou agree NOT to:\n• Post harmful, harassing, or hateful content\n• Impersonate any person or organisation\n• Upload malware or attempt to hack the service\n• Scrape other users' data without consent\n\n5. CONTENT\nYou keep ownership of what you post. By posting you grant Nexus a non-exclusive licence to display it within the platform.\n\n6. TERMINATION\nWe may suspend accounts that violate these terms.\n\n7. DISCLAIMER\nService is provided "as is" without warranties.\n\n8. CONTACT\nlegal@nexus.app` },
+  privacy: { title: "Privacy Policy", body: `Last updated: March 2026\n\n1. DATA WE COLLECT\n• Account: username, email, profile photo\n• Content: posts, messages, stories\n• Usage: features used, session duration\n• Device: browser, IP address\n\n2. HOW WE USE IT\n• To operate and improve Nexus\n• To deliver notifications you've opted into\n• To enforce our Terms of Service\n\n3. SHARING\nWe never sell your data. We share only with infrastructure providers (Firebase/Google) and law enforcement when legally required.\n\n4. YOUR RIGHTS\nAccess · Correct · Delete · Export your data at any time from Settings → Account.\n\n5. CONTACT\nprivacy@nexus.app` },
+  community: { title: "Community Guidelines", body: `BE KIND & RESPECTFUL\nTreat everyone with dignity.\n\nNO HATE SPEECH\nContent targeting people based on race, religion, gender, sexuality, or disability is banned.\n\nNO HARASSMENT\nNo stalking, threatening, or bullying.\n\nKEEP IT LEGAL\nNo illegal content or activity.\n\nNO SPAM\nNo flood posting or bots.\n\nPROTECT MINORS\nContent endangering minors is strictly forbidden.\n\nENFORCEMENT\nViolations may result in removal, suspension, or permanent ban.` },
 };
+
 function LegalSection() {
   const [view, setView] = useState(null);
   if (view) {
-    const doc = LEGAL[view];
+    const docItem = LEGAL[view];
     return (
       <>
-        <button onClick={() => setView(null)} style={{ display:"flex", alignItems:"center", gap:6, background:"transparent", border:"none", color:"var(--accent-2)", fontFamily:"var(--font)", fontSize:13, fontWeight:600, cursor:"pointer", padding:"16px 24px 8px" }}>
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => setView(null)} style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--accent-2)", fontFamily: "var(--font)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "16px 24px 8px" }}>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           Back
         </button>
-        <div style={{ padding:"0 24px 32px" }}>
-          <h3 style={{ fontSize:16, fontWeight:800, marginBottom:16, letterSpacing:"-.02em" }}>{doc.title}</h3>
-          <pre style={{ fontFamily:"var(--font)", fontSize:12, color:"var(--text-2)", lineHeight:1.8, whiteSpace:"pre-wrap", wordBreak:"break-word" }}>{doc.body}</pre>
+        <div style={{ padding: "0 24px 32px" }}>
+          <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, letterSpacing: "-.02em" }}>{docItem.title}</h3>
+          <pre style={{ fontFamily: "var(--font)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{docItem.body}</pre>
         </div>
       </>
     );
@@ -291,22 +329,33 @@ function LegalSection() {
 
 // ── About ─────────────────────────────────────────────────
 function AboutSection() {
-  const features = [["✦","Stories","24-hour photo & text stories"],["💬","Group DMs","Conversations with multiple people"],["🎭","GIFs & Stickers","Powered by Giphy"],["🎙️","Voice messages","Record and send audio clips"],["🔥","Vibes","Animated mood rings on avatars"],["📣","Reactions","Emoji reactions on posts & messages"]];
+  const features = [
+    ["✦", "Stories", "24-hour photo & text stories"],
+    ["💬", "Group DMs", "Conversations with multiple people"],
+    ["🎭", "GIFs & Stickers", "Powered by Giphy"],
+    ["🎙️", "Voice messages", "Record and send audio clips"],
+    ["🔥", "Vibes", "Animated mood rings on avatars"],
+    ["📣", "Reactions", "Emoji reactions on posts & messages"],
+    ["🪙", "Coins", "Tip creators with in-app coins"],
+    ["🖼️", "Chat wallpapers", "Personalise your DM backgrounds"],
+    ["🎨", "Custom themes", "6 accent colours to choose from"],
+    ["🏅", "Badges", "Earn badges for milestones"],
+  ];
   return (
     <>
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px 20px", borderBottom:"1px solid var(--border)", gap:6 }}>
-        <div style={{ marginBottom:6, filter:"drop-shadow(0 0 20px var(--glow-purple)) drop-shadow(0 0 40px var(--glow-cyan))" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 24px 20px", borderBottom: "1px solid var(--border)", gap: 6 }}>
+        <div style={{ marginBottom: 6, filter: "drop-shadow(0 0 20px var(--glow-purple)) drop-shadow(0 0 40px var(--glow-cyan))" }}>
           <NexusLogo size={88} />
         </div>
-        <h2 style={{ fontSize:22, fontWeight:800, letterSpacing:"-.03em", background:"linear-gradient(135deg, var(--accent-2), var(--cyan))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Nexus</h2>
-        <p style={{ fontSize:13, color:"var(--text-3)" }}>Chat · Share · Connect</p>
-        <span style={{ fontSize:11, color:"var(--text-3)", fontFamily:"var(--mono)" }}>Version 2.0.0</span>
+        <h2 style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.03em", background: "linear-gradient(135deg, var(--accent-2), var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Nexus</h2>
+        <p style={{ fontSize: 13, color: "var(--text-3)" }}>Chat · Share · Connect</p>
+        <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>Version 2.0.0</span>
       </div>
       <Divider label="Build info" />
       <Row icon="🚀" label="Version" desc="Current stable release"             right={<Badge>v2.0.0</Badge>} />
       <Row icon="🛠️" label="Stack"  desc="React 18 · Firebase 10 · date-fns" right={<Badge>Web</Badge>} />
       <Divider label="What's in v2" />
-      {features.map(([icon,label,desc]) => <Row key={label} icon={icon} label={label} desc={desc} />)}
+      {features.map(([icon, label, desc]) => <Row key={label} icon={icon} label={label} desc={desc} />)}
     </>
   );
 }
@@ -315,31 +364,39 @@ function AboutSection() {
 export default function SettingsModal({ onClose }) {
   const { profile } = useAuth();
   const [active, setActive] = useState("account");
-  const content = { account:<AccountSection profile={profile} />, appearance:<AppearanceSection />, notifications:<NotificationsSection />, privacy:<PrivacySection />, help:<HelpSection />, legal:<LegalSection />, about:<AboutSection /> };
+  const content = {
+    account: <AccountSection profile={profile} />,
+    appearance: <AppearanceSection />,
+    notifications: <NotificationsSection />,
+    privacy: <PrivacySection />,
+    help: <HelpSection />,
+    legal: <LegalSection />,
+    about: <AboutSection />,
+  };
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.82)", backdropFilter:"blur(6px)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={e => e.target===e.currentTarget && onClose()}>
-      <div style={{ display:"flex", width:"100%", maxWidth:860, height:"min(660px, 92vh)", background:"var(--bg-1)", border:"1.5px solid var(--border-2)", borderRadius:"var(--r-xl)", overflow:"hidden", boxShadow:"0 0 60px var(--glow-purple), 0 32px 80px rgba(0,0,0,.85)", animation:"settings-enter .22s cubic-bezier(.16,1,.3,1)" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.82)", backdropFilter: "blur(6px)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ display: "flex", width: "100%", maxWidth: 860, height: "min(660px, 92vh)", background: "var(--bg-1)", border: "1.5px solid var(--border-2)", borderRadius: "var(--r-xl)", overflow: "hidden", boxShadow: "0 0 60px var(--glow-purple), 0 32px 80px rgba(0,0,0,.85)", animation: "settings-enter .22s cubic-bezier(.16,1,.3,1)" }}>
 
         {/* Nav */}
-        <aside style={{ width:220, flexShrink:0, background:"var(--bg)", borderRight:"1px solid var(--border-2)", display:"flex", flexDirection:"column", overflow:"hidden" }}>
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 16px 12px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
-            <span style={{ fontSize:15, fontWeight:800, letterSpacing:"-.02em" }}>Settings</span>
+        <aside style={{ width: 220, flexShrink: 0, background: "var(--bg)", borderRight: "1px solid var(--border-2)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-.02em" }}>Settings</span>
             <button className="icon-btn" onClick={onClose}>✕</button>
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
-            <div style={{ width:36, height:36, borderRadius:"50%", overflow:"hidden", flexShrink:0, background:"var(--accent-bg)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 0 10px var(--glow-purple)" }}>
-              {profile?.avatar ? <img src={profile.avatar} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:13, fontWeight:700, color:"var(--accent-2)" }}>{(profile?.displayName||"?").slice(0,2).toUpperCase()}</span>}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--accent-bg)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 10px var(--glow-purple)" }}>
+              {profile?.avatar ? <img src={profile.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-2)" }}>{(profile?.displayName || "?").slice(0, 2).toUpperCase()}</span>}
             </div>
-            <div style={{ minWidth:0 }}>
-              <span style={{ display:"block", fontSize:13, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{profile?.displayName}</span>
-              <span style={{ fontSize:11, color:"var(--text-3)" }}>@{profile?.username}</span>
+            <div style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile?.displayName}</span>
+              <span style={{ fontSize: 11, color: "var(--text-3)" }}>@{profile?.username}</span>
             </div>
           </div>
-          <nav style={{ flex:1, overflowY:"auto", padding:8 }}>
+          <nav style={{ flex: 1, overflowY: "auto", padding: 8 }}>
             {SECTIONS.map(s => (
-              <button key={s.id} onClick={() => setActive(s.id)} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"9px 10px", background:active===s.id?"var(--accent-bg)":"transparent", border:"none", borderRadius:"var(--r-md)", color:active===s.id?"var(--accent-2)":"var(--text-2)", fontFamily:"var(--font)", fontSize:13, fontWeight:600, cursor:"pointer", textAlign:"left", marginBottom:2, transition:"all .12s", boxShadow:active===s.id?"0 0 10px var(--glow-purple)":"none" }}>
-                <span style={{ fontSize:15, width:20, textAlign:"center", flexShrink:0 }}>{s.icon}</span>
+              <button key={s.id} onClick={() => setActive(s.id)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 10px", background: active === s.id ? "var(--accent-bg)" : "transparent", border: "none", borderRadius: "var(--r-md)", color: active === s.id ? "var(--accent-2)" : "var(--text-2)", fontFamily: "var(--font)", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left", marginBottom: 2, transition: "all .12s", boxShadow: active === s.id ? "0 0 10px var(--glow-purple)" : "none" }}>
+                <span style={{ fontSize: 15, width: 20, textAlign: "center", flexShrink: 0 }}>{s.icon}</span>
                 <span>{s.label}</span>
               </button>
             ))}
@@ -347,11 +404,11 @@ export default function SettingsModal({ onClose }) {
         </aside>
 
         {/* Content */}
-        <main style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
-          <div style={{ padding:"18px 24px 14px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
-            <h2 style={{ fontSize:17, fontWeight:800, letterSpacing:"-.02em" }}>{SECTIONS.find(s=>s.id===active)?.label}</h2>
+        <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
+          <div style={{ padding: "18px 24px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, letterSpacing: "-.02em" }}>{SECTIONS.find(s => s.id === active)?.label}</h2>
           </div>
-          <div style={{ flex:1, overflowY:"auto", overflowX:"hidden" }}>{content[active]}</div>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>{content[active]}</div>
         </main>
       </div>
     </div>
