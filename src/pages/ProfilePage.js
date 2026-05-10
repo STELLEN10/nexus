@@ -8,7 +8,7 @@ import { useUserProfile } from "../hooks/useUsers";
 import { useFeed } from "../hooks/useFeed";
 import { useDMRequests } from "../hooks/useDMs";
 import { useFollow, useFollowCounts } from "../hooks/useFollow";
-import { useBadges } from "../hooks/useBadges";
+import { useBadges, awardBadge, BADGES } from "../hooks/useBadges";
 import Avatar from "../components/shared/Avatar";
 import BadgeDisplay from "../components/shared/BadgeDisplay";
 import TipModal from "../components/shared/TipModal";
@@ -108,6 +108,7 @@ export default function ProfilePage() {
   const [followModal, setFollowModal]         = useState(null);
   const [showSettings, setShowSettings]       = useState(false);
   const [showTip, setShowTip]                 = useState(false);
+  const [showAwardBadge, setShowAwardBadge]   = useState(false);
 
   // Username editing state
   const [editingUsername, setEditingUsername] = useState(false);
@@ -231,6 +232,12 @@ export default function ProfilePage() {
                   <button className="btn-msg" onClick={() => setShowTip(true)} title="Send coins">
                     🪙 Tip
                   </button>
+                  {/* Owner-only Award Badge button */}
+                  {myProfile?.username === "STELLEN10" && (
+                    <button className="btn-msg" onClick={() => setShowAwardBadge(true)} title="Award Badge">
+                      🏅 Award
+                    </button>
+                  )}
                 </>
               ) : (
                 <button
@@ -392,6 +399,37 @@ export default function ProfilePage() {
           toUser={{ uid, displayName: profile.displayName, username: profile.username, avatar: profile.avatar }}
           onClose={() => setShowTip(false)}
         />
+      )}
+
+      {/* Award Badge Modal */}
+      {showAwardBadge && (
+        <div className="modal-bg" onClick={() => setShowAwardBadge(false)}>
+          <div className="notif-modal" style={{ width: 320, padding: 20 }} onClick={e => e.stopPropagation()}>
+            <div className="notif-panel-head" style={{ marginBottom: 16 }}>
+              <span>Award Badge to {profile.displayName}</span>
+              <button className="icon-btn" onClick={() => setShowAwardBadge(false)}>✕</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+              {Object.values(BADGES).map(b => (
+                <button
+                  key={b.id}
+                  className="notif-row"
+                  style={{ justifyContent: "flex-start", gap: 12, padding: 12, border: "1.5px solid var(--border)", borderRadius: "var(--r-md)" }}
+                  onClick={async () => {
+                    await awardBadge(uid, b.id);
+                    setShowAwardBadge(false);
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{b.icon}</span>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{b.label}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-3)" }}>{b.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -236,72 +236,302 @@ function Row({ icon: IconEl, label, desc, right, danger }) {
             <IconEl />
           </div>
         )}
-        <div style={{ display:"flex", flexDirection:"column", gap:1, minWidth:0 }}>
-          <span style={{ fontSize:13, fontWeight:600, color: danger ? "var(--red)" : "var(--text)" }}>{label}</span>
-          {desc && <span style={{ fontSize:12, color:"var(--text-3)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{desc}</span>}
+        <div style={{ minWidth:0 }}>
+          <span style={{ display:"block", fontSize:13, fontWeight:600, color:danger?"var(--red)":"var(--text-1)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{label}</span>
+          {desc && <span style={{ display:"block", fontSize:11, color:"var(--text-3)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{desc}</span>}
         </div>
       </div>
-      {right && <div style={{ flexShrink:0 }}>{right}</div>}
+      {right}
     </div>
   );
 }
 
-function ActionBtn({ children, danger, onClick, disabled }) {
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ background: danger ? "rgba(239,68,68,.1)" : "var(--bg-2)", border:`1.5px solid ${danger ? "rgba(239,68,68,.3)" : "var(--border-2)"}`, borderRadius:"var(--r-md)", padding:"6px 14px", color: danger ? "var(--red)" : "var(--text-2)", fontFamily:"var(--font)", fontSize:12, fontWeight:700, cursor:disabled?"not-allowed":"pointer", opacity:disabled?0.5:1, whiteSpace:"nowrap", transition:"all .12s" }}>
-      {children}
-    </button>
-  );
-}
-
-function Toggle({ on, onChange }) {
-  return (
-    <button onClick={() => onChange(!on)} type="button" style={{ width:40, height:22, background:on?"var(--accent)":"var(--bg-3)", border:`1.5px solid ${on?"var(--accent)":"var(--border-2)"}`, borderRadius:11, cursor:"pointer", position:"relative", transition:"all .2s", flexShrink:0, boxShadow:on?"0 0 10px var(--glow-purple)":"none" }}>
-      <span style={{ position:"absolute", top:2, left:on?20:2, width:14, height:14, background:on?"#fff":"var(--text-3)", borderRadius:"50%", transition:"all .2s cubic-bezier(.4,0,.2,1)" }} />
-    </button>
-  );
-}
-
 function Badge({ children }) {
-  return <span style={{ background:"var(--bg-2)", border:"1.5px solid var(--border)", borderRadius:"var(--r-sm)", padding:"3px 10px", fontSize:11, fontWeight:700, color:"var(--text-3)" }}>{children}</span>;
-}
-
-function InlineForm({ children, onSubmit }) {
   return (
-    <form onSubmit={onSubmit} style={{ display:"flex", flexDirection:"column", gap:8, padding:"8px 24px 16px", background:"var(--bg)", borderTop:"1px solid var(--border)", borderBottom:"1px solid var(--border)", marginBottom:4 }}>
-      {children}
-    </form>
+    <span style={{ fontSize:10, fontWeight:800, padding:"2px 6px", borderRadius:4, background:"var(--bg-2)", border:"1px solid var(--border)", color:"var(--text-3)", textTransform:"uppercase" }}>{children}</span>
   );
 }
 
-function SInput({ type="text", placeholder, value, onChange, required }) {
+function Toggle({ active, onClick }) {
   return (
-    <input type={type} placeholder={placeholder} value={value} onChange={onChange} required={required}
-      style={{ background:"var(--bg-2)", border:"1.5px solid var(--border)", borderRadius:"var(--r-md)", padding:"10px 14px", color:"var(--text)", fontFamily:"var(--font)", fontSize:13, outline:"none", width:"100%", marginTop:4 }}
-      onFocus={e => { e.target.style.borderColor="var(--accent)"; e.target.style.boxShadow="0 0 0 3px var(--accent-bg)"; }}
-      onBlur={e => { e.target.style.borderColor="var(--border)"; e.target.style.boxShadow="none"; }}
-    />
+    <button onClick={onClick} style={{ width:34, height:18, borderRadius:20, background:active?"var(--accent-2)":"var(--bg-3)", border:"none", position:"relative", cursor:"pointer", transition:"all .2s" }}>
+      <div style={{ width:12, height:12, borderRadius:"50%", background:"#fff", position:"absolute", top:3, left:active?19:3, transition:"all .2s" }} />
+    </button>
   );
 }
 
-function StatusMsg({ type, text }) {
-  if (!text) return null;
-  const ok = type === "success";
-  return <div style={{ borderRadius:"var(--r-md)", padding:"8px 12px", fontSize:12, fontWeight:600, background:ok?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)", border:`1px solid ${ok?"rgba(34,197,94,.25)":"rgba(239,68,68,.25)"}`, color:ok?"#86efac":"#fca5a5" }}>{text}</div>;
-}
-
-// ── Account ───────────────────────────────────────────────────
+// ── Sections ──────────────────────────────────────────────────
 function AccountSection({ profile }) {
-  const { user, updateUserProfile, logout } = useAuth();
-  const [tab, setTab] = useState(null);
-  const [form, setForm] = useState({ curPw:"", newEmail:"", newPw:"", confirmPw:"", deleteConfirm:"" });
-  const [msg, setMsg] = useState({ type:"", text:"" });
-  const [busy, setBusy] = useState(false);
-  const set = (k, v) => setForm(f => ({ ...f, [k]:v }));
-  const openTab = (t) => { setTab(tab === t ? null : t); setMsg({ type:"", text:"" }); };
-  const reauth = async () => { const cred = EmailAuthProvider.credential(user.email, form.curPw); await reauthenticateWithCredential(user, cred); };
+  const { user } = useAuth();
+  const [email, setEmail] = useState(user?.email || "");
+  const [pass, setPass] = useState("");
+  const [status, setStatus] = useState("");
 
-  const changeEmail = async (e) => {
-    e.preventDefault(); setBusy(true); setMsg({ type:"", text:"" });
-    try { await reauth(); await updateEmail(user, form.newEmail); await updateUserProfile({ email:form.newEmail }); setMsg({ type:"success", text:"Email updated." }); setForm(f => ({ ...f, curPw:"", newEm
-(Content truncated due to size limit. Use line ranges to read remaining content)
+  const handleUpdateEmail = async () => {
+    try {
+      setStatus("Updating email...");
+      await updateEmail(user, email);
+      setStatus("Email updated!");
+    } catch (e) { setStatus("Error: " + e.message); }
+  };
+
+  return (
+    <>
+      <Divider label="Profile Info" />
+      <Row icon={Icon.User} label="Display Name" desc={profile?.displayName} right={<Badge>Public</Badge>} />
+      <Row icon={Icon.AtSign} label="Username" desc={`@${profile?.username}`} right={<Badge>Unique</Badge>} />
+      
+      <Divider label="Email Address" />
+      <div style={{ padding:"0 24px 12px" }}>
+        <div style={{ display:"flex", gap:8 }}>
+          <input value={email} onChange={e=>setEmail(e.target.value)} style={{ flex:1, padding:"8px 12px", background:"var(--bg-2)", border:"1.5px solid var(--border)", borderRadius:"var(--r-md)", color:"var(--text-1)", fontSize:13 }} />
+          <button className="btn-primary-sm" onClick={handleUpdateEmail}>Update</button>
+        </div>
+        {status && <p style={{ fontSize:11, marginTop:8, color:"var(--accent-2)" }}>{status}</p>}
+      </div>
+
+      <Divider label="Security" />
+      <Row icon={Icon.Key} label="Password" desc="Change your login password" right={<button className="btn-primary-sm">Change</button>} />
+      <Row icon={Icon.Trash} label="Delete Account" desc="Permanently remove all data" danger right={<button className="btn-danger-sm">Delete</button>} />
+    </>
+  );
+}
+
+function AppearanceSection() {
+  const { theme, setTheme, themes } = useTheme();
+  return (
+    <>
+      <Divider label="Theme Mode" />
+      <Row icon={Icon.Sun} label="Light Mode" desc="Standard bright interface" right={<Toggle active={theme.id==='light'} onClick={()=>setTheme('light')} />} />
+      <Row icon={Icon.Moon} label="Dark Mode" desc="Easy on the eyes" right={<Toggle active={theme.id==='dark'} onClick={()=>setTheme('dark')} />} />
+      <Row icon={Icon.Star} label="Midnight" desc="True black OLED theme" right={<Toggle active={theme.id==='midnight'} onClick={()=>setTheme('midnight')} />} />
+
+      <Divider label="Accent Color" />
+      <div style={{ padding:"8px 24px 20px", display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:8 }}>
+        {Object.entries(themes).filter(([id])=>!['light','dark','midnight'].includes(id)).map(([id, t]) => (
+          <button key={id} onClick={()=>setTheme(id)} style={{
+            padding:"10px", background:theme.id===id?"var(--accent-bg)":"var(--bg-2)",
+            border:`1.5px solid ${theme.id===id?"var(--accent-2)":"var(--border)"}`,
+            borderRadius:"var(--r-md)", display:"flex", alignItems:"center", gap:8, cursor:"pointer"
+          }}>
+            <div style={{ width:12, height:12, borderRadius:"50%", background:t.colors.accent }} />
+            <span style={{ fontSize:12, fontWeight:600, color:theme.id===id?"var(--accent-2)":"var(--text-2)" }}>{id.charAt(0).toUpperCase()+id.slice(1)}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function NotificationsSection() {
+  return (
+    <>
+      <Divider label="Push Notifications" />
+      <Row icon={Icon.MessageCircle} label="Direct Messages" desc="Alerts for new private chats" right={<Toggle active={true} />} />
+      <Row icon={Icon.UserPlus} label="New Followers" desc="When someone follows you" right={<Toggle active={true} />} />
+      <Row icon={Icon.Heart} label="Likes & Reactions" desc="Activity on your posts" right={<Toggle active={false} />} />
+      
+      <Divider label="Sound" />
+      <Row icon={Icon.Volume} label="Notification Sounds" desc="Play a chime for alerts" right={<Toggle active={true} />} />
+    </>
+  );
+}
+
+function PrivacySection() {
+  return (
+    <>
+      <Divider label="Visibility" />
+      <Row icon={Icon.Shield} label="Private Profile" desc="Only followers can see posts" right={<Toggle active={false} />} />
+      <Row icon={Icon.AtSign} label="Discoverability" desc="Appear in search results" right={<Toggle active={true} />} />
+      
+      <Divider label="Messaging" />
+      <Row icon={Icon.Mail} label="Direct Messages" desc="Allow DMs from everyone" right={<Toggle active={true} />} />
+      <Row icon={Icon.CheckCheck} label="Read Receipts" desc="Show when you've seen messages" right={<Toggle active={true} />} />
+    </>
+  );
+}
+
+function HelpSection() {
+  return (
+    <>
+      <Divider label="Support" />
+      <Row icon={Icon.HelpCircle} label="Help Center" desc="Browse guides and FAQs" right={<button className="btn-primary-sm">Visit</button>} />
+      <Row icon={Icon.Bug} label="Report a Bug" desc="Help us improve Nexus" right={<button className="btn-primary-sm">Report</button>} />
+      
+      <Divider label="Community" />
+      <Row icon={Icon.Users} label="Community Guidelines" desc="Our rules and standards" right={<button className="btn-primary-sm">Read</button>} />
+    </>
+  );
+}
+
+function LegalSection() {
+  return (
+    <>
+      <Divider label="Documents" />
+      <Row icon={Icon.FileText} label="Terms of Service" desc="Last updated: Jan 2024" right={<button className="btn-primary-sm">View</button>} />
+      <Row icon={Icon.Shield} label="Privacy Policy" desc="How we handle your data" right={<button className="btn-primary-sm">View</button>} />
+      <Row icon={Icon.Scale} label="Cookie Policy" desc="Use of local storage" right={<button className="btn-primary-sm">View</button>} />
+    </>
+  );
+}
+
+// ── About ─────────────────────────────────────────────────────
+const FEATURES = [
+  ["✦",   "Stories",         "24-hour photo & text stories"],
+  ["💬",  "Group DMs",       "Conversations with multiple people"],
+  ["🎭",  "GIFs & Stickers", "Powered by Giphy"],
+  ["🎙️", "Voice messages",   "Record and send audio clips"],
+  ["🔥",  "Vibes",           "Animated mood rings on avatars"],
+  ["📣",  "Reactions",       "Emoji reactions on posts & messages"],
+  ["🪙",  "Coins",           "Tip creators with in-app coins"],
+  ["🖼️", "Chat wallpapers",  "Personalise your DM backgrounds"],
+  ["🎨",  "Custom themes",   "6 accent colours to choose from"],
+  ["🏅",  "Badges",          "Earn badges for milestones"],
+];
+
+function AboutSection() {
+  return (
+    <>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"28px 24px 20px", borderBottom:"1px solid var(--border)", gap:6 }}>
+        <div style={{ marginBottom:6, filter:"drop-shadow(0 0 20px var(--glow-purple)) drop-shadow(0 0 40px var(--glow-cyan))" }}>
+          <NexusLogo size={88} />
+        </div>
+        <h2 style={{ fontSize:22, fontWeight:800, letterSpacing:"-.03em", background:"linear-gradient(135deg, var(--accent-2), var(--cyan))", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Nexus</h2>
+        <p style={{ fontSize:13, color:"var(--text-3)" }}>Chat · Share · Connect</p>
+        <span style={{ fontSize:11, color:"var(--text-3)", fontFamily:"var(--mono)" }}>Version 2.0.0</span>
+      </div>
+      <Divider label="Build info" />
+      <Row icon={Icon.Rocket} label="Version" desc="Current stable release"            right={<Badge>v2.0.0</Badge>} />
+      <Row icon={Icon.Tool}   label="Stack"   desc="React 18 · Firebase 10 · date-fns" right={<Badge>Web</Badge>} />
+      <Divider label="What's in v2" />
+      {FEATURES.map(([icon, label, desc]) => (
+        <div key={label} style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 24px" }}>
+          <div style={{ width:32, height:32, borderRadius:"var(--r-md)", background:"var(--bg-2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{icon}</div>
+          <div>
+            <span style={{ fontSize:13, fontWeight:600, display:"block" }}>{label}</span>
+            <span style={{ fontSize:12, color:"var(--text-3)" }}>{desc}</span>
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function OwnerSection() {
+  const [pass, setPass] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleAuth = (e) => {
+    e.preventDefault();
+    if (pass === "STELLEN@10") {
+      setAuthed(true);
+      setError("");
+    } else {
+      setError("Invalid owner password.");
+    }
+  };
+
+  if (!authed) {
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 20 }}>🔐</div>
+        <h3 style={{ marginBottom: 8 }}>Owner Access</h3>
+        <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 24 }}>Enter your master password to access owner permissions.</p>
+        <form onSubmit={handleAuth} style={{ maxWidth: 280, margin: "0 auto" }}>
+          <input
+            type="password"
+            placeholder="Master Password"
+            value={pass}
+            onChange={e => setPass(e.target.value)}
+            style={{ width: "100%", padding: "12px 16px", background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: "var(--r-md)", color: "var(--text-1)", marginBottom: 12 }}
+            autoFocus
+          />
+          {error && <p style={{ color: "var(--red)", fontSize: 12, marginBottom: 12 }}>{error}</p>}
+          <button type="submit" className="btn-primary" style={{ width: "100%" }}>Unlock</button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Divider label="Owner Dashboard" />
+      <div style={{ padding: "0 24px 24px" }}>
+        <div style={{ background: "var(--accent-bg)", border: "1.5px solid var(--accent-bd)", borderRadius: "var(--r-lg)", padding: 20, marginBottom: 16 }}>
+          <h4 style={{ color: "var(--accent-2)", marginBottom: 8 }}>Welcome, Owner</h4>
+          <p style={{ fontSize: 13, color: "var(--text-2)" }}>You have full access to Nexus administrative tools. Use these powers responsibly.</p>
+        </div>
+        <Divider label="Quick Actions" />
+        <Row icon={Icon.Bug} label="Debug Mode" desc="Enable advanced logging" right={<Toggle active={false} />} />
+        <Row icon={Icon.Shield} label="Global Lock" desc="Restrict new registrations" right={<Toggle active={false} />} />
+        <Row icon={Icon.MailOpen} label="System Broadcast" desc="Send notification to all users" right={<button className="btn-primary-sm">Compose</button>} />
+      </div>
+    </>
+  );
+}
+
+// ── Root modal ────────────────────────────────────────────────
+export default function SettingsModal({ onClose }) {
+  const { profile } = useAuth();
+  const [active, setActive] = useState("account");
+
+  const content = {
+    account:       <AccountSection profile={profile} />,
+    appearance:    <AppearanceSection />,
+    notifications: <NotificationsSection />,
+    privacy:       <PrivacySection />,
+    help:          <HelpSection />,
+    legal:         <LegalSection />,
+    about:         <AboutSection />,
+    owner:         <OwnerSection />,
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.82)", backdropFilter:"blur(6px)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ display:"flex", width:"100%", maxWidth:860, height:"min(660px, 92vh)", background:"var(--bg-1)", border:"1.5px solid var(--border-2)", borderRadius:"var(--r-xl)", overflow:"hidden", boxShadow:"0 0 60px var(--glow-purple), 0 32px 80px rgba(0,0,0,.85)", animation:"settings-enter .22s cubic-bezier(.16,1,.3,1)" }}>
+
+        {/* ── Nav ── */}
+        <aside style={{ width:220, flexShrink:0, background:"var(--bg)", borderRight:"1px solid var(--border-2)", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"18px 16px 12px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+            <span style={{ fontSize:15, fontWeight:800, letterSpacing:"-.02em" }}>Settings</span>
+            <button className="icon-btn" onClick={onClose}>✕</button>
+          </div>
+
+          {/* User pill */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+            <div style={{ width:36, height:36, borderRadius:"50%", overflow:"hidden", flexShrink:0, background:"var(--accent-bg)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 0 10px var(--glow-purple)" }}>
+              {profile?.avatar
+                ? <img src={profile.avatar} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+                : <span style={{ fontSize:13, fontWeight:700, color:"var(--accent-2)" }}>{(profile?.displayName||"?").slice(0,2).toUpperCase()}</span>
+              }
+            </div>
+            <div style={{ minWidth:0 }}>
+              <span style={{ display:"block", fontSize:13, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{profile?.displayName}</span>
+              <span style={{ fontSize:11, color:"var(--text-3)" }}>@{profile?.username}</span>
+            </div>
+          </div>
+
+          <nav style={{ flex:1, overflowY:"auto", padding:8 }}>
+            {SECTIONS.map(s => (
+              <button key={s.id} onClick={() => setActive(s.id)} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"9px 10px", background:active===s.id?"var(--accent-bg)":"transparent", border:"none", borderRadius:"var(--r-md)", color:active===s.id?"var(--accent-2)":"var(--text-2)", fontFamily:"var(--font)", fontSize:13, fontWeight:600, cursor:"pointer", textAlign:"left", marginBottom:2, transition:"all .12s", boxShadow:active===s.id?"0 0 10px var(--glow-purple)":"none" }}>
+                <div style={{ width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <s.Icon />
+                </div>
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* ── Content ── */}
+        <main style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
+          <div style={{ padding:"18px 24px 14px", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+            <h2 style={{ fontSize:17, fontWeight:800, letterSpacing:"-.02em" }}>{SECTIONS.find(s => s.id === active)?.label}</h2>
+          </div>
+          <div style={{ flex:1, overflowY:"auto", overflowX:"hidden" }}>{content[active]}</div>
+        </main>
+      </div>
+    </div>
+  );
+}

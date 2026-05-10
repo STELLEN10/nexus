@@ -27,19 +27,19 @@ function WallpaperPicker({ dmId, current, onClose }) {
         {WALLPAPERS.map(w => (
           <button
             key={w.id}
-            onClick={() => { setWallpaper(dmId, w.id); onClose(); }}
+            onClick={() => {
+              setWallpaper(dmId, w.id);
+              onClose();
+            }}
             style={{
-              height: 56, borderRadius: "var(--r-md)", cursor: "pointer",
-              border: current === w.id ? "2.5px solid var(--accent)" : "1.5px solid var(--border)",
-              background: w.style.background || "var(--bg-2)",
-              backgroundImage: w.style.backgroundImage || "none",
-              backgroundSize: w.style.backgroundSize || "auto",
-              backgroundColor: w.style.backgroundColor || "var(--bg-2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700,
-              color: w.id === "none" ? "var(--text-2)" : "rgba(255,255,255,.85)",
-              transition: "border-color .15s",
-              boxShadow: current === w.id ? "0 0 10px var(--glow-purple)" : "none",
+              padding: "10px 8px",
+              background: current === w.id ? "var(--accent-bg)" : "var(--bg-2)",
+              border: `1.5px solid ${current === w.id ? "var(--accent-2)" : "var(--border)"}`,
+              borderRadius: "var(--r-md)",
+              color: current === w.id ? "var(--accent-2)" : "var(--text-2)",
+              fontSize: 12, fontWeight: 600, cursor: "pointer",
+              transition: "all .12s",
+              boxShadow: current === w.id ? "0 0 10px var(--glow-purple)" : "none"
             }}
           >
             {w.label}
@@ -55,180 +55,117 @@ export default function DMPage() {
   const { dmId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [input, setInput] = useState("");
-  const [replyTo, setReplyTo] = useState(null);
+  const { messages, loading, sendMessage, sendSticker, sendVoice } = useDMMessages(dmId);
+  const [text, setText] = useState("");
   const [showStickers, setShowStickers] = useState(false);
-  const [showVoice, setShowVoice] = useState(false);
   const [showWallpaper, setShowWallpaper] = useState(false);
-  const [wallpaper, setWallpaperState] = useState(() => getWallpaper(dmId));
-  const inputRef = useRef();
-  const bottomRef = useRef();
-  const { messages, loading, sendDM, deleteDM, reactToDM } = useDMMessages(dmId);
+  const [wallpaper, setWallpaperState] = useState(getWallpaper(dmId));
+  const scrollRef = useRef();
 
-  const otherMsg = messages.find(m => m.senderId !== user?.uid);
-  const otherUser = otherMsg
-    ? { username: otherMsg.senderName, displayName: otherMsg.senderName, avatar: otherMsg.senderAvatar }
-    : null;
-  const online = useOnlineStatus(otherMsg?.senderId);
+  const otherUserId = dmId.replace(user?.uid, "").replace("-", "");
+  const { online, lastSeen } = useOnlineStatus(otherUserId);
 
-  // Listen for wallpaper changes
   useEffect(() => {
-    const handler = (e) => {
-      if (e.detail.roomId === dmId) {
-        setWallpaperState(getWallpaper(dmId));
-      }
-    };
-    window.addEventListener("wallpaper-change", handler);
-    return () => window.removeEventListener("wallpaper-change", handler);
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const handleStorage = () => setWallpaperState(getWallpaper(dmId));
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, [dmId]);
 
-  // Reset wallpaper when room changes
-  useEffect(() => {
-    setWallpaperState(getWallpaper(dmId));
-  }, [dmId]);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
-  useEffect(() => {
-    inputRef.current?.focus();
-    const handleResize = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    window.visualViewport?.addEventListener("resize", handleResize);
-    return () => window.visualViewport?.removeEventListener("resize", handleResize);
-  }, [dmId]);
-
-  const handleSend = async (e) => {
+  const handleSend = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    const c = input.trim();
-    setInput("");
-    setReplyTo(null);
-    await sendDM(c, "text", replyTo);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(e); }
-  };
-
-  const handleSticker = async (url) => {
-    setShowStickers(false);
-    await sendDM(url, "sticker");
-  };
-
-  const handleVoice = async (url) => {
-    setShowVoice(false);
-    await sendDM(url, "voice");
+    if (!text.trim()) return;
+    sendMessage(text);
+    setText("");
   };
 
   return (
-    <>
-      <div className="chat-window">
-        {/* Topbar */}
-        <div className="chat-topbar">
-          <button className="icon-btn" onClick={() => navigate(-1)}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <VibeAvatar user={otherUser} uid={otherMsg?.senderId} size={32} online={online} showVibe={true} tappable={true} />
-          <div style={{ flex: 1 }}>
-            <span className="dm-topbar-name">{otherUser?.displayName || "User"}</span>
-            <span className={`dm-topbar-status ${online ? "on" : ""}`}>{online ? "● online" : "offline"}</span>
+    <div className="dm-page" style={{
+      display: "flex", flexDirection: "column", height: "100%",
+      background: wallpaper.type === "color" ? wallpaper.value : `url(${wallpaper.value})`,
+      backgroundSize: "cover", backgroundPosition: "center"
+    }}>
+      {/* Header */}
+      <div className="dm-header" style={{
+        padding: "12px 20px", background: "rgba(10,10,12,.8)",
+        backdropFilter: "blur(12px)", borderBottom: "1px solid var(--border)",
+        display: "flex", alignItems: "center", gap: 12, flexShrink: 0
+      }}>
+        <button className="icon-btn" onClick={() => navigate(-1)} style={{ marginRight: 4 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <VibeAvatar uid={otherUserId} size={40} showStatus />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Chat
           </div>
-          {/* Wallpaper picker trigger */}
-          <div style={{ position: "relative" }}>
-            <button
-              className="icon-btn"
-              onClick={() => setShowWallpaper(v => !v)}
-              title="Chat wallpaper"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.8"/>
-                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-                <path d="M3 15l5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-            {showWallpaper && (
-              createPortal(
-                <WallpaperPicker
-                  dmId={dmId}
-                  current={wallpaper.id}
-                  onClose={() => setShowWallpaper(false)}
-                />,
-                document.body
-              )
-            )}
+          <div style={{ fontSize: 11, color: online ? "var(--green)" : "var(--text-3)", fontWeight: 600 }}>
+            {online ? "Online now" : "Offline"}
           </div>
         </div>
+      </div>
 
-        {/* Messages area with wallpaper applied */}
-        <div
-          className="messages-area"
-          style={{
-            ...wallpaper.style,
-            backgroundAttachment: "local",
-          }}
-        >
-          {loading && [1, 2, 3].map(i => <div key={i} className="skeleton-msg" style={{ width: `${50 + i * 12}%` }} />)}
-          {!loading && messages.length === 0 && (
-            <div className="messages-empty">
-              <div style={{ fontSize: 32 }}>💬</div>
-              <p>Start a conversation with {otherUser?.displayName || "User"}</p>
-            </div>
-          )}
-          {messages.map((msg, i) => {
-            const prev = messages[i - 1];
-            return (
-              <DMBubble
-                key={msg.id}
-                message={msg}
-                isOwn={msg.senderId === user?.uid}
-                isGrouped={prev && prev.senderId === msg.senderId && msg.createdAt - prev.createdAt < 300000}
-                onReply={() => !msg.deleted && setReplyTo(msg)}
-                onReact={e => reactToDM(msg.id, e)}
-                onDelete={() => deleteDM && deleteDM(msg.id)}
-              />
-            );
-          })}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Reply bar */}
-        {replyTo && (
-          <div className="reply-bar">
-            <div>
-              <span className="reply-bar-label">↩ Replying to {replyTo.senderName}</span>
-              <span className="reply-bar-preview">
-                {replyTo.type === "sticker" ? "🎭 Sticker" : replyTo.type === "voice" ? "🎙 Voice" : replyTo.content?.substring(0, 80)}
-              </span>
-            </div>
-            <button className="icon-btn" onClick={() => setReplyTo(null)}>✕</button>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 40, color: "var(--text-3)" }}>Loading conversation...</div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 60 }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>👋</div>
+            <div style={{ fontWeight: 700, color: "var(--text-1)" }}>Start a conversation</div>
+            <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>Say hello to your friend!</div>
           </div>
-        )}
-
-        {showVoice && <VoiceRecorder onSend={handleVoice} onClose={() => setShowVoice(false)} />}
-
-        {/* Input bar */}
-        <form className="input-bar" onSubmit={handleSend}>
-          <div className="input-bar-inner">
-            <button type="button" className="sticker-btn" onClick={() => setShowStickers(true)}>🎭</button>
-            <button type="button" className="sticker-btn" onClick={() => setShowVoice(v => !v)}>🎙</button>
-            <textarea
-              ref={inputRef}
-              className="chat-textarea"
-              placeholder={`Message ${otherUser?.displayName || "User"}`}
-              value={input}
-              onChange={e => {
-                setInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-              }}
-              onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 300)}
-              onKeyDown={handleKeyDown}
-              rows={1}
+        ) : (
+          messages.map((m, i) => (
+            <DMBubble
+              key={m.id}
+              message={m}
+              isMe={m.senderId === user?.uid}
+              showAvatar={i === 0 || messages[i-1].senderId !== m.senderId}
             />
-            <button type="submit" className="send-btn" disabled={!input.trim()}>
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                <path d="M14 8L2 2l3 6-3 6 12-6z" fill="currentColor" />
-              </svg>
+          ))
+        )}
+        <div ref={scrollRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: "12px 16px 20px", background: "rgba(10,10,12,.8)", backdropFilter: "blur(12px)", borderTop: "1px solid var(--border)" }}>
+        <form onSubmit={handleSend} style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: "var(--r-xl)", padding: "4px 8px 4px 16px" }}>
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Type a message..."
+            style={{ flex: 1, background: "none", border: "none", color: "var(--text-1)", fontSize: 14, padding: "8px 0", outline: "none" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ position: "relative" }}>
+              <button type="button" className="icon-btn" onClick={() => setShowWallpaper(!showWallpaper)} title="Chat wallpaper">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.8"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                  <path d="M3 15l5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              {showWallpaper && (
+                createPortal(
+                  <WallpaperPicker
+                    dmId={dmId}
+                    current={wallpaper.id}
+                    onClose={() => setShowWallpaper(false)}
+                  />,
+                  document.body
+                )
+              )}
+            </div>
+            <button type="button" className="icon-btn" onClick={() => setShowStickers(true)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            </button>
+            <VoiceRecorder onStop={sendVoice} />
+            <button type="submit" className="icon-btn" style={{ color: "var(--accent-2)" }} disabled={!text.trim()}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
           </div>
         </form>
@@ -236,10 +173,13 @@ export default function DMPage() {
 
       {showStickers && (
         <StickerPickerModal
-          onSelect={handleSticker}
+          onSelect={sticker => {
+            sendSticker(sticker);
+            setShowStickers(false);
+          }}
           onClose={() => setShowStickers(false)}
         />
       )}
-    </>
+    </div>
   );
 }
