@@ -1,6 +1,7 @@
 // src/components/settings/SettingsModal.js  — SVG icon redesign
 import { useState } from "react";
 import NexusLogo from "../shared/NexusLogo";
+import SuperOwnerDashboard from "../owner/SuperOwnerDashboard";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -264,7 +265,6 @@ function Toggle({ active, onClick }) {
 function AccountSection({ profile }) {
   const { user } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
-  const [pass, setPass] = useState("");
   const [status, setStatus] = useState("");
 
   const handleUpdateEmail = async () => {
@@ -421,6 +421,7 @@ function OwnerSection() {
   const [pass, setPass] = useState("");
   const [authed, setAuthed] = useState(false);
   const [error, setError] = useState("");
+  const [showSuperDash, setShowSuperDash] = useState(false);
 
   const handleAuth = (e) => {
     e.preventDefault();
@@ -462,11 +463,22 @@ function OwnerSection() {
           <h4 style={{ color: "var(--accent-2)", marginBottom: 8 }}>Welcome, Owner</h4>
           <p style={{ fontSize: 13, color: "var(--text-2)" }}>You have full access to Nexus administrative tools. Use these powers responsibly.</p>
         </div>
+        <Divider label="Administrative Powers" />
+        <div style={{ padding: "12px 0" }}>
+          <button 
+            className="btn-primary" 
+            style={{ width: "100%", padding: "16px", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
+            onClick={() => setShowSuperDash(true)}
+          >
+            <span>⚡</span> OPEN SUPER OWNER DASHBOARD
+          </button>
+        </div>
         <Divider label="Quick Actions" />
         <Row icon={Icon.Bug} label="Debug Mode" desc="Enable advanced logging" right={<Toggle active={false} />} />
         <Row icon={Icon.Shield} label="Global Lock" desc="Restrict new registrations" right={<Toggle active={false} />} />
         <Row icon={Icon.MailOpen} label="System Broadcast" desc="Send notification to all users" right={<button className="btn-primary-sm">Compose</button>} />
       </div>
+      {showSuperDash && <SuperOwnerDashboard onClose={() => setShowSuperDash(false)} />}
     </>
   );
 }
