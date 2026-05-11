@@ -1,724 +1,679 @@
-import { useState, useEffect, useCallback } from "react";
-import { db, rtdb } from "../../firebase";
+// src/components/owner/SuperOwnerDashboard.js
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
-  collection, getDocs, doc, updateDoc, addDoc,
-  serverTimestamp, onSnapshot, orderBy, query,
-  setDoc, getDoc, deleteDoc
+  collection, getDocs, doc, updateDoc, deleteDoc,
+  query, orderBy, limit, getDoc, setDoc, addDoc,
+  serverTimestamp, where, onSnapshot
 } from "firebase/firestore";
-import { ref, onValue, off } from "firebase/database";
-import { format } from "date-fns";
+import { db } from "../../firebase";
+import { awardBadge, BADGES } from "../../hooks/useBadgeSystem";
 
-const BADGES = ["founder", "early_adopter", "verified", "vip", "moderator", "legend"];
+// ── Tabs ──────────────────────────────────────────────────────
+const TABS = [
+  { id:"overview",   icon:"📊", label:"Overview"      },
+  { id:"users",      icon:"👥", label:"Users"         },
+  { id:"badges",     icon:"🏅", label:"Award Badges"  },
+  { id:"coins",      icon:"🪙", label:"Coins"         },
+  { id:"broadcast",  icon:"📣", label:"Broadcast"     },
+  { id:"reports",    icon:"🚨", label:"Reports"       },
+];
 
-// ─────────────────────────────────────────────────────────────
-// Shared UI primitives
-// ─────────────────────────────────────────────────────────────
-function Card({ children, style }) {
+// ── Stat card ─────────────────────────────────────────────────
+function StatCard({ icon, label, value, color="#7c3aed", sub }) {
   return (
     <div style={{
-      background: "var(--bg-2)", borderRadius: "var(--r-lg)",
-      border: "1.5px solid var(--border)", padding: 24, ...style
+      background:"var(--bg-2)",border:`1.5px solid ${color}33`,
+      borderRadius:16,padding:"18px 20px",
+      boxShadow:`0 0 20px ${color}22`,
     }}>
-      {children}
+      <div style={{fontSize:28,marginBottom:8}}>{icon}</div>
+      <div style={{fontSize:26,fontWeight:800,color,marginBottom:2}}>{value}</div>
+      <div style={{fontSize:12,color:"var(--text-2)",fontWeight:600}}>{label}</div>
+      {sub && <div style={{fontSize:11,color:"var(--text-3)",marginTop:3}}>{sub}</div>}
     </div>
   );
 }
 
-function SectionTitle({ children }) {
+// ── Overview tab ──────────────────────────────────────────────
+function OverviewTab({ stats }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".08em", color: "var(--text-3)", marginBottom: 16 }}>
-      {children}
-    </div>
-  );
-}
-
-function StatusBadge({ color, label }) {
-  const colors = {
-    green:  { bg: "rgba(34,197,94,.12)",  border: "rgba(34,197,94,.3)",  text: "var(--green)" },
-    red:    { bg: "rgba(239,68,68,.12)",   border: "rgba(239,68,68,.3)",  text: "var(--red)" },
-    amber:  { bg: "rgba(245,158,11,.12)",  border: "rgba(245,158,11,.3)", text: "var(--amber)" },
-    cyan:   { bg: "rgba(6,182,212,.12)",   border: "rgba(6,182,212,.3)",  text: "var(--cyan)" },
-  };
-  const c = colors[color] || colors.green;
-  return (
-    <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 6, background: c.bg, border: `1px solid ${c.border}`, color: c.text, textTransform: "uppercase" }}>
-      {label}
-    </span>
-  );
-}
-
-function Toggle({ active, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      width: 40, height: 22, borderRadius: 20, flexShrink: 0,
-      background: active ? "var(--accent-2)" : "var(--bg-3)",
-      border: "none", position: "relative", cursor: "pointer",
-      transition: "all .25s", boxShadow: active ? "0 0 12px var(--glow-purple)" : "none"
-    }}>
+    <div style={{padding:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:20}}>
+        <StatCard icon="👥" label="Total Users"    value={stats.users}    color="#7c3aed" />
+        <StatCard icon="📝" label="Total Posts"    value={stats.posts}    color="#06b6d4" />
+        <StatCard icon="💬" label="Messages Sent"  value={stats.messages} color="#ec4899" />
+        <StatCard icon="🪙" label="Coins in System" value={stats.coins}   color="#f59e0b" />
+        <StatCard icon="🏅" label="Badges Awarded" value={stats.badges}   color="#22c55e" />
+        <StatCard icon="📖" label="Stories Posted" value={stats.stories}  color="#8b5cf6" />
+      </div>
       <div style={{
-        width: 14, height: 14, borderRadius: "50%", background: "#fff",
-        position: "absolute", top: 4, left: active ? 22 : 4, transition: "all .25s"
-      }} />
-    </button>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Main Dashboard
-// ─────────────────────────────────────────────────────────────
-export default function SuperOwnerDashboard({ onClose }) {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [users, setUsers]         = useState([]);
-  const [stats, setStats]         = useState({ totalUsers: 0, totalPosts: 0, activeDMs: 0 });
-  const [loading, setLoading]     = useState(true);
-  const [permError, setPermError] = useState(false);
-  const [chatRooms, setChatRooms] = useState([]);
-  const [selectedChat, setSelectedChat]     = useState(null);
-  const [chatMessages, setChatMessages]     = useState([]);
-  const [searchTerm, setSearchTerm]         = useState("");
-
-  // Broadcast state
-  const [broadcastMsg, setBroadcastMsg]     = useState("");
-  const [broadcastType, setBroadcastType]   = useState("info");
-  const [broadcastSending, setBroadcastSending] = useState(false);
-  const [broadcastHistory, setBroadcastHistory] = useState([]);
-
-  // Audit Logs state
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [logsLoading, setLogsLoading] = useState(false);
-
-  // Core Config state
-  const [config, setConfig] = useState({
-    registrationEnabled: true,
-    maintenanceMode: false,
-    dmEnabled: true,
-    postsEnabled: true,
-    storiesEnabled: true,
-    coinsEnabled: true,
-    badgesEnabled: true,
-    maxPostLength: 500,
-    maxBioLength: 160,
-    minUsernameLength: 3,
-  });
-  const [configSaving, setConfigSaving] = useState(false);
-  const [configSaved, setConfigSaved]   = useState(false);
-
-  // ── Initial data fetch ──────────────────────────────────────
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        const [uSnap, pSnap, dSnap] = await Promise.all([
-          getDocs(collection(db, "users")),
-          getDocs(collection(db, "posts")).catch(() => ({ size: 0, docs: [] })),
-          getDocs(collection(db, "dms")).catch(() => ({ size: 0, docs: [] })),
-        ]);
-        setStats({ totalUsers: uSnap.size, totalPosts: pSnap.size, activeDMs: dSnap.size });
-        setUsers(uSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setChatRooms(dSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-        // Load config from Firestore
-        const cfgSnap = await getDoc(doc(db, "owner", "config")).catch(() => null);
-        if (cfgSnap && cfgSnap.exists()) setConfig(prev => ({ ...prev, ...cfgSnap.data() }));
-
-        setPermError(false);
-      } catch (e) {
-        console.error("Owner fetch error:", e);
-        setPermError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
-  }, []);
-
-  // ── Audit logs real-time listener ──────────────────────────
-  useEffect(() => {
-    if (activeTab !== "logs") return;
-    setLogsLoading(true);
-    const q = query(collection(db, "owner_logs"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
-      setAuditLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLogsLoading(false);
-    }, () => setLogsLoading(false));
-    return unsub;
-  }, [activeTab]);
-
-  // ── Broadcast history listener ──────────────────────────────
-  useEffect(() => {
-    if (activeTab !== "broadcast") return;
-    const q = query(collection(db, "broadcasts"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, snap => {
-      setBroadcastHistory(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
-    return unsub;
-  }, [activeTab]);
-
-  // ── Chat monitoring ─────────────────────────────────────────
-  useEffect(() => {
-    if (!selectedChat) return;
-    const msgsRef = ref(rtdb, `dms/${selectedChat.id}/messages`);
-    const unsub = onValue(msgsRef, snap => {
-      if (snap.exists()) {
-        const msgs = Object.entries(snap.val()).map(([id, data]) => ({ id, ...data }));
-        setChatMessages(msgs.sort((a, b) => a.createdAt - b.createdAt));
-      } else setChatMessages([]);
-    }, () => setChatMessages([]));
-    return () => off(msgsRef);
-  }, [selectedChat]);
-
-  // ── Shared log writer ───────────────────────────────────────
-  const writeLog = useCallback(async (action, details = "") => {
-    try {
-      await addDoc(collection(db, "owner_logs"), {
-        action, details, createdAt: serverTimestamp(),
-        performedBy: "STELLEN10"
-      });
-    } catch (e) { console.warn("Log write failed:", e); }
-  }, []);
-
-  // ── User actions ────────────────────────────────────────────
-  const toggleBan = async (u) => {
-    try {
-      await updateDoc(doc(db, "users", u.id), { isBanned: !u.isBanned });
-      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isBanned: !u.isBanned } : x));
-      await writeLog(u.isBanned ? "UNBAN_USER" : "BAN_USER", `@${u.username}`);
-    } catch { alert("Permission denied — update Firebase rules first."); }
-  };
-
-  const toggleVerify = async (u) => {
-    try {
-      await updateDoc(doc(db, "users", u.id), { isVerified: !u.isVerified });
-      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, isVerified: !u.isVerified } : x));
-      await writeLog(u.isVerified ? "UNVERIFY_USER" : "VERIFY_USER", `@${u.username}`);
-    } catch { alert("Permission denied — update Firebase rules first."); }
-  };
-
-  const addCoins = async (u, amount) => {
-    try {
-      const newBal = (u.coins || 0) + amount;
-      await updateDoc(doc(db, "users", u.id), { coins: newBal });
-      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, coins: newBal } : x));
-      await writeLog("GIVE_COINS", `+${amount} coins to @${u.username}`);
-    } catch { alert("Permission denied — update Firebase rules first."); }
-  };
-
-  const awardBadge = async (u, badge) => {
-    try {
-      const current = u.badges || [];
-      if (current.includes(badge)) return;
-      const updated = [...current, badge];
-      await updateDoc(doc(db, "users", u.id), { badges: updated });
-      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, badges: updated } : x));
-      await writeLog("AWARD_BADGE", `Badge "${badge}" → @${u.username}`);
-    } catch { alert("Permission denied — update Firebase rules first."); }
-  };
-
-  // ── Broadcast sender ────────────────────────────────────────
-  const sendBroadcast = async () => {
-    if (!broadcastMsg.trim()) return;
-    setBroadcastSending(true);
-    try {
-      // Write to broadcasts collection (history)
-      await addDoc(collection(db, "broadcasts"), {
-        message: broadcastMsg,
-        type: broadcastType,
-        sentBy: "STELLEN10",
-        createdAt: serverTimestamp(),
-      });
-
-      // Send a notification to every user
-      const uSnap = await getDocs(collection(db, "users"));
-      const batch = uSnap.docs.map(d =>
-        addDoc(collection(db, "notifications"), {
-          type: "broadcast",
-          fromUid: "owner",
-          fromUsername: "Nexus Team",
-          toUid: d.id,
-          message: broadcastMsg,
-          broadcastType,
-          read: false,
-          createdAt: serverTimestamp(),
-        }).catch(() => {})
-      );
-      await Promise.all(batch);
-      await writeLog("BROADCAST", `"${broadcastMsg.slice(0, 60)}..." → ${uSnap.size} users`);
-      setBroadcastMsg("");
-    } catch (e) {
-      alert("Broadcast failed — check Firebase rules.");
-    } finally {
-      setBroadcastSending(false);
-    }
-  };
-
-  // ── Config saver ────────────────────────────────────────────
-  const saveConfig = async () => {
-    setConfigSaving(true);
-    try {
-      await setDoc(doc(db, "owner", "config"), { ...config, updatedAt: serverTimestamp() });
-      await writeLog("UPDATE_CONFIG", JSON.stringify(config).slice(0, 100));
-      setConfigSaved(true);
-      setTimeout(() => setConfigSaved(false), 3000);
-    } catch { alert("Config save failed — check Firebase rules."); }
-    setConfigSaving(false);
-  };
-
-  // ── Permission error banner ─────────────────────────────────
-  const PermBanner = () => permError ? (
-    <div style={{ margin: "0 0 20px", padding: 14, background: "rgba(239,68,68,.1)", border: "1.5px solid rgba(239,68,68,.3)", borderRadius: "var(--r-lg)", fontSize: 13 }}>
-      <b style={{ color: "var(--red)" }}>⚠️ Firebase Permission Error</b><br />
-      <span style={{ color: "var(--text-2)" }}>Update your Firestore rules in the Firebase Console to grant owner access.</span>
-    </div>
-  ) : null;
-
-  const filteredUsers = users.filter(u =>
-    !searchTerm ||
-    u.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.displayName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // ─────────────────────────────────────────────────────────
-  // TAB: Overview
-  // ─────────────────────────────────────────────────────────
-  const renderOverview = () => (
-    <div style={{ padding: 20 }}>
-      <PermBanner />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-        {[
-          { label: "Total Users", val: stats.totalUsers, icon: "👥", color: "var(--accent)" },
-          { label: "Total Posts", val: stats.totalPosts, icon: "📝", color: "var(--cyan)" },
-          { label: "Active Chats", val: stats.activeDMs, icon: "💬", color: "var(--green)" },
-        ].map(s => (
-          <div key={s.label} style={{ background: "var(--bg-2)", padding: 20, borderRadius: "var(--r-lg)", border: "1.5px solid var(--border)", boxShadow: `0 10px 30px -10px ${s.color}` }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em" }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 900 }}>{s.val}</div>
-          </div>
-        ))}
-      </div>
-      <Card>
-        <SectionTitle>Platform Status</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        background:"var(--bg-2)",border:"1.5px solid var(--border)",
+        borderRadius:16,padding:20,
+      }}>
+        <h3 style={{fontSize:14,fontWeight:700,marginBottom:16,color:"var(--accent-2)"}}>
+          ⚡ Owner Quick Actions
+        </h3>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {[
-            { label: "Registration", ok: config.registrationEnabled },
-            { label: "Direct Messages", ok: config.dmEnabled },
-            { label: "Posts", ok: config.postsEnabled },
-            { label: "Maintenance Mode", ok: !config.maintenanceMode },
-          ].map(s => (
-            <div key={s.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "var(--bg-3)", borderRadius: "var(--r-md)" }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{s.label}</span>
-              <StatusBadge color={s.ok ? "green" : "red"} label={s.ok ? "ON" : "OFF"} />
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────
-  // TAB: User Management
-  // ─────────────────────────────────────────────────────────
-  const renderUserManagement = () => (
-    <div style={{ padding: 20 }}>
-      <PermBanner />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 800 }}>User Directory ({filteredUsers.length})</h3>
-        <input
-          placeholder="🔍 Search users..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "8px 14px", color: "var(--text)", width: 200 }}
-        />
-      </div>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead style={{ background: "rgba(255,255,255,.04)", borderBottom: "1px solid var(--border)" }}>
-            <tr>
-              {["User", "Status", "Coins", "Badges", "Actions"].map(h => (
-                <th key={h} style={{ textAlign: h === "Actions" ? "right" : "left", padding: "10px 14px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--text-3)" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map(u => (
-              <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ padding: "10px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--bg-3)", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, color: "var(--accent-2)" }}>
-                      {u.avatar ? <img src={u.avatar} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" /> : (u.displayName || "?").slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{u.displayName}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-3)" }}>@{u.username}</div>
-                    </div>
-                  </div>
-                </td>
-                <td style={{ padding: "10px 14px" }}>
-                  <StatusBadge color={u.isBanned ? "red" : "green"} label={u.isBanned ? "Banned" : "Active"} />
-                  {u.isVerified && <span style={{ marginLeft: 6 }}>✅</span>}
-                </td>
-                <td style={{ padding: "10px 14px" }}>🪙 {u.coins || 0}</td>
-                <td style={{ padding: "10px 14px" }}>
-                  <select
-                    onChange={e => { if (e.target.value) { awardBadge(u, e.target.value); e.target.value = ""; } }}
-                    style={{ background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text-2)", padding: "4px 8px", fontSize: 11, cursor: "pointer", marginBottom: 4 }}
-                  >
-                    <option value="">+ Award Badge</option>
-                    {BADGES.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                  <div style={{ fontSize: 10, color: "var(--text-3)" }}>{(u.badges || []).join(", ") || "—"}</div>
-                </td>
-                <td style={{ padding: "10px 14px", textAlign: "right" }}>
-                  <button onClick={() => toggleVerify(u)} style={{ marginRight: 6, background: "none", border: "none", color: "var(--cyan)", cursor: "pointer", fontSize: 16 }} title="Toggle Verify">💎</button>
-                  <button onClick={() => addCoins(u, 100)} style={{ marginRight: 6, background: "none", border: "none", color: "var(--amber)", cursor: "pointer", fontSize: 16 }} title="Give 100 Coins">🪙</button>
-                  <button onClick={() => toggleBan(u)} style={{ background: "none", border: "none", color: "var(--red)", cursor: "pointer", fontSize: 16 }} title={u.isBanned ? "Unban" : "Ban"}>
-                    {u.isBanned ? "🔓" : "🚫"}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────
-  // TAB: Chat Monitor
-  // ─────────────────────────────────────────────────────────
-  const renderChatMonitoring = () => (
-    <div style={{ display: "flex", height: "100%", minHeight: 460 }}>
-      <div style={{ width: 260, borderRight: "1px solid var(--border)", overflowY: "auto", padding: 10, flexShrink: 0 }}>
-        <div style={{ padding: "6px 10px 12px", fontSize: 11, textTransform: "uppercase", color: "var(--text-3)", fontWeight: 700, letterSpacing: ".05em" }}>
-          Conversations ({chatRooms.length})
-        </div>
-        {chatRooms.length === 0 && <div style={{ fontSize: 12, color: "var(--text-3)", padding: 10 }}>No chats found.</div>}
-        {chatRooms.map(room => (
-          <div key={room.id} onClick={() => setSelectedChat(room)} style={{ padding: "10px 12px", borderRadius: "var(--r-md)", cursor: "pointer", background: selectedChat?.id === room.id ? "var(--accent-bg)" : "transparent", border: `1px solid ${selectedChat?.id === room.id ? "var(--accent-bd)" : "transparent"}`, marginBottom: 4, transition: "all .15s" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-              {room.memberNames ? Object.values(room.memberNames).join(" & ") : room.id}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {room.lastMessage?.content?.slice(0, 30) || "No messages yet"}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {selectedChat ? (
-          <>
-            <div style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 8px var(--green)" }} />
-              <span style={{ fontWeight: 800, fontSize: 13 }}>Live Monitor: {selectedChat.memberNames ? Object.values(selectedChat.memberNames).join(" & ") : selectedChat.id}</span>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-              {chatMessages.length === 0
-                ? <div style={{ textAlign: "center", color: "var(--text-3)", marginTop: 40 }}>No messages yet.</div>
-                : chatMessages.map(m => (
-                  <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--bg-3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: "var(--accent-2)", flexShrink: 0 }}>
-                      {(m.senderName || "?").slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 3 }}>
-                        <b style={{ color: "var(--text-2)" }}>{m.senderName}</b> · {m.createdAt ? format(m.createdAt, "HH:mm") : ""}
-                      </div>
-                      <div style={{ background: "var(--bg-3)", padding: "8px 12px", borderRadius: "var(--r-md)", fontSize: 13, maxWidth: 400 }}>
-                        {m.type === "sticker" ? "🎭 Sticker" : m.content}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
-            </div>
-          </>
-        ) : (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-3)", gap: 12 }}>
-            <div style={{ fontSize: 40 }}>👁️</div>
-            <div style={{ fontWeight: 700 }}>Select a conversation to monitor</div>
-            <div style={{ fontSize: 12 }}>Messages appear in real-time</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────
-  // TAB: Broadcast
-  // ─────────────────────────────────────────────────────────
-  const BROADCAST_TYPES = [
-    { id: "info",    label: "📣 Announcement", color: "var(--cyan)" },
-    { id: "warning", label: "⚠️ Warning",       color: "var(--amber)" },
-    { id: "update",  label: "🚀 Update",         color: "var(--accent-2)" },
-    { id: "alert",   label: "🚨 Alert",           color: "var(--red)" },
-  ];
-
-  const renderBroadcast = () => (
-    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
-      <PermBanner />
-      <Card>
-        <SectionTitle>Compose Broadcast</SectionTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
-          {BROADCAST_TYPES.map(t => (
-            <button key={t.id} onClick={() => setBroadcastType(t.id)} style={{
-              padding: "10px 6px", borderRadius: "var(--r-md)", border: `1.5px solid ${broadcastType === t.id ? t.color : "var(--border)"}`,
-              background: broadcastType === t.id ? `${t.color}18` : "var(--bg-3)",
-              color: broadcastType === t.id ? t.color : "var(--text-3)",
-              cursor: "pointer", fontWeight: 700, fontSize: 12, transition: "all .15s"
-            }}>
-              {t.label}
+            ["🔒","Lock Registrations","Prevent new signups"],
+            ["📣","Global Broadcast","Message all users"],
+            ["🗑️","Clear Reports","Mark all resolved"],
+            ["💾","Export Data","Download user list CSV"],
+          ].map(([ico,lbl,desc]) => (
+            <button key={lbl} style={{
+              display:"flex",alignItems:"center",gap:10,
+              padding:"12px 14px",background:"var(--bg-3)",
+              border:"1.5px solid var(--border)",borderRadius:12,
+              cursor:"pointer",textAlign:"left",transition:"all .15s",
+            }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--accent-bd)";e.currentTarget.style.background="var(--accent-bg)"}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.background="var(--bg-3)"}}
+            >
+              <span style={{fontSize:20}}>{ico}</span>
+              <div>
+                <div style={{fontSize:12,fontWeight:700}}>{lbl}</div>
+                <div style={{fontSize:10,color:"var(--text-3)"}}>{desc}</div>
+              </div>
             </button>
           ))}
         </div>
-        <textarea
-          value={broadcastMsg}
-          onChange={e => setBroadcastMsg(e.target.value)}
-          placeholder="Write your message to all users..."
-          rows={5}
-          style={{ width: "100%", background: "var(--bg-3)", border: "1.5px solid var(--border)", borderRadius: "var(--r-md)", padding: 14, color: "var(--text)", fontSize: 13, resize: "vertical", marginBottom: 14, fontFamily: "var(--font)" }}
-        />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 12, color: "var(--text-3)" }}>Will be sent to all {stats.totalUsers} users as a notification.</span>
-          <button
-            className="btn-primary"
-            disabled={!broadcastMsg.trim() || broadcastSending}
-            onClick={sendBroadcast}
-            style={{ minWidth: 160, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}
-          >
-            {broadcastSending ? <><div className="spinner-sm" /> Sending...</> : "📢 Send Broadcast"}
+      </div>
+    </div>
+  );
+}
+
+// ── Users tab ─────────────────────────────────────────────────
+function UsersTab() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [action, setAction] = useState("");
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    getDocs(query(collection(db, "users"), orderBy("createdAt","desc"), limit(100)))
+      .then(snap => {
+        setUsers(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = users.filter(u =>
+    !search || u.username?.includes(search.toLowerCase()) || u.displayName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAction = async (uid, act) => {
+    setMsg("");
+    if (act === "ban") {
+      await updateDoc(doc(db,"users",uid), { banned:true, bannedAt: serverTimestamp() });
+      setMsg("User banned.");
+    } else if (act === "unban") {
+      await updateDoc(doc(db,"users",uid), { banned:false });
+      setMsg("User unbanned.");
+    } else if (act === "verify") {
+      await awardBadge(uid, "verified");
+      setMsg("Verified badge awarded!");
+    } else if (act === "founder") {
+      await awardBadge(uid, "founder");
+      setMsg("Founder badge awarded!");
+    } else if (act === "delete") {
+      if (!window.confirm("Delete this user's profile permanently?")) return;
+      await deleteDoc(doc(db,"users",uid));
+      setUsers(prev => prev.filter(u => u.id !== uid));
+      setSelected(null);
+      setMsg("User deleted.");
+    }
+    setAction("");
+  };
+
+  const sel = selected ? users.find(u => u.id === selected) : null;
+
+  return (
+    <div style={{display:"flex",height:"100%",minHeight:0}}>
+      {/* User list */}
+      <div style={{width:260,flexShrink:0,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"12px 14px",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+          <input
+            placeholder="Search users..."
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            style={{
+              width:"100%",padding:"8px 12px",background:"var(--bg-2)",
+              border:"1.5px solid var(--border)",borderRadius:10,
+              color:"var(--text)",fontFamily:"var(--font)",fontSize:12,outline:"none",
+            }}
+          />
+        </div>
+        <div style={{flex:1,overflowY:"auto"}}>
+          {loading ? (
+            <div style={{display:"flex",justifyContent:"center",padding:20}}>
+              <div className="spinner"/>
+            </div>
+          ) : filtered.map(u => (
+            <div key={u.id} onClick={() => setSelected(u.id)}
+              style={{
+                display:"flex",alignItems:"center",gap:10,padding:"10px 14px",
+                cursor:"pointer",borderBottom:"1px solid var(--border)",
+                background: selected===u.id ? "var(--accent-bg)" : "transparent",
+                transition:"background .1s",
+              }}>
+              <div style={{
+                width:34,height:34,borderRadius:"50%",flexShrink:0,overflow:"hidden",
+                background:"var(--bg-3)",display:"flex",alignItems:"center",justifyContent:"center",
+                border: u.banned ? "2px solid var(--red)" : "2px solid var(--border)",
+              }}>
+                {u.avatar
+                  ? <img src={u.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <span style={{fontSize:12,fontWeight:700,color:"var(--accent-2)"}}>{(u.displayName||"?").slice(0,2).toUpperCase()}</span>
+                }
+              </div>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                  {u.displayName}
+                  {u.banned && <span style={{color:"var(--red)",marginLeft:4,fontSize:10}}>BANNED</span>}
+                </div>
+                <div style={{fontSize:10,color:"var(--text-3)"}}>@{u.username}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* User detail */}
+      <div style={{flex:1,overflowY:"auto",padding:20}}>
+        {!sel ? (
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",color:"var(--text-3)",gap:10}}>
+            <span style={{fontSize:32}}>👤</span>
+            <p style={{fontSize:13}}>Select a user to manage</p>
+          </div>
+        ) : (
+          <>
+            {msg && (
+              <div style={{background:"rgba(34,197,94,.1)",border:"1px solid rgba(34,197,94,.25)",borderRadius:10,padding:"8px 14px",fontSize:12,color:"var(--green)",marginBottom:16}}>
+                ✓ {msg}
+              </div>
+            )}
+            {/* Profile */}
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20,padding:"16px",background:"var(--bg-2)",borderRadius:16,border:"1.5px solid var(--border)"}}>
+              <div style={{width:56,height:56,borderRadius:"50%",overflow:"hidden",flexShrink:0,background:"var(--bg-3)"}}>
+                {sel.avatar
+                  ? <img src={sel.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:"var(--accent-2)"}}>{(sel.displayName||"?").slice(0,2).toUpperCase()}</div>
+                }
+              </div>
+              <div>
+                <div style={{fontSize:16,fontWeight:800}}>{sel.displayName}</div>
+                <div style={{fontSize:12,color:"var(--text-3)"}}>@{sel.username} · {sel.email}</div>
+                <div style={{fontSize:11,color:"var(--text-3)",marginTop:2}}>
+                  {sel.followersCount||0} followers · {sel.followingCount||0} following
+                </div>
+              </div>
+            </div>
+
+            {/* Info grid */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+              {[
+                ["🆔","User ID", sel.id?.slice(0,16)+"..."],
+                ["📧","Email", sel.email||"—"],
+                ["📅","Joined", sel.createdAt?.toDate ? new Date(sel.createdAt.toDate()).toLocaleDateString() : "—"],
+                ["🔒","Status", sel.banned ? "BANNED" : "Active"],
+              ].map(([ico,lbl,val]) => (
+                <div key={lbl} style={{background:"var(--bg-2)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px"}}>
+                  <div style={{fontSize:10,color:"var(--text-3)",marginBottom:3,textTransform:"uppercase",letterSpacing:".04em"}}>{ico} {lbl}</div>
+                  <div style={{fontSize:12,fontWeight:700,wordBreak:"break-all"}}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Actions</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                <button onClick={() => handleAction(sel.id,"verify")} style={{background:"rgba(6,182,212,.12)",border:"1.5px solid rgba(6,182,212,.3)",borderRadius:10,padding:"8px 14px",color:"#06b6d4",fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  ✓ Award Verified
+                </button>
+                <button onClick={() => handleAction(sel.id,"founder")} style={{background:"rgba(168,85,247,.12)",border:"1.5px solid rgba(168,85,247,.3)",borderRadius:10,padding:"8px 14px",color:"#a855f7",fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  👑 Award Founder
+                </button>
+                {!sel.banned ? (
+                  <button onClick={() => handleAction(sel.id,"ban")} style={{background:"rgba(239,68,68,.1)",border:"1.5px solid rgba(239,68,68,.25)",borderRadius:10,padding:"8px 14px",color:"var(--red)",fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    🚫 Ban User
+                  </button>
+                ) : (
+                  <button onClick={() => handleAction(sel.id,"unban")} style={{background:"rgba(34,197,94,.1)",border:"1.5px solid rgba(34,197,94,.25)",borderRadius:10,padding:"8px 14px",color:"var(--green)",fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                    ✓ Unban User
+                  </button>
+                )}
+                <button onClick={() => handleAction(sel.id,"delete")} style={{background:"rgba(239,68,68,.08)",border:"1.5px solid rgba(239,68,68,.2)",borderRadius:10,padding:"8px 14px",color:"var(--red)",fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  🗑️ Delete Profile
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Award Badges tab ──────────────────────────────────────────
+function BadgesTab() {
+  const [users, setUsers] = useState([]);
+  const [selUser, setSelUser] = useState("");
+  const [selBadge, setSelBadge] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    getDocs(query(collection(db,"users"),orderBy("displayName"),limit(100)))
+      .then(snap => setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
+  }, []);
+
+  const filtered = users.filter(u =>
+    !search || u.username?.includes(search.toLowerCase()) || u.displayName?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAward = async () => {
+    if (!selUser || !selBadge) { setMsg("Select a user and badge."); return; }
+    setLoading(true); setMsg("");
+    try {
+      await awardBadge(selUser, selBadge);
+      const badge = BADGES[selBadge];
+      setMsg(`✓ ${badge.icon} ${badge.label} awarded! (+${badge.coinReward} coins sent)`);
+      setSelBadge("");
+    } catch (err) { setMsg("Error: " + err.message); }
+    setLoading(false);
+  };
+
+  const selUserObj = users.find(u => u.id === selUser);
+
+  return (
+    <div style={{padding:20}}>
+      {msg && (
+        <div style={{
+          background: msg.startsWith("✓") ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)",
+          border: `1px solid ${msg.startsWith("✓") ? "rgba(34,197,94,.25)" : "rgba(239,68,68,.25)"}`,
+          borderRadius:12,padding:"10px 16px",fontSize:13,
+          color: msg.startsWith("✓") ? "var(--green)" : "var(--red)",
+          marginBottom:16,
+        }}>{msg}</div>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+        {/* User picker */}
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>
+            1. Select User
+          </div>
+          <input
+            placeholder="Search users..."
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            style={{width:"100%",padding:"8px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:10,color:"var(--text)",fontFamily:"var(--font)",fontSize:12,outline:"none",marginBottom:8}}
+          />
+          <div style={{maxHeight:220,overflowY:"auto",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12}}>
+            {filtered.map(u => (
+              <div key={u.id} onClick={() => setSelUser(u.id)}
+                style={{
+                  display:"flex",alignItems:"center",gap:10,padding:"10px 12px",
+                  cursor:"pointer",borderBottom:"1px solid var(--border)",
+                  background: selUser===u.id ? "var(--accent-bg)" : "transparent",
+                  transition:"background .1s",
+                }}>
+                <div style={{width:28,height:28,borderRadius:"50%",overflow:"hidden",flexShrink:0,background:"var(--bg-3)"}}>
+                  {u.avatar
+                    ? <img src={u.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"var(--accent-2)"}}>{(u.displayName||"?").slice(0,2).toUpperCase()}</div>
+                  }
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700}}>{u.displayName}</div>
+                  <div style={{fontSize:10,color:"var(--text-3)"}}>@{u.username}</div>
+                </div>
+                {selUser===u.id && <span style={{color:"var(--accent-2)",marginLeft:"auto",fontSize:14}}>✓</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Badge picker */}
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>
+            2. Select Badge
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:280,overflowY:"auto"}}>
+            {Object.values(BADGES).map(badge => (
+              <button key={badge.id} onClick={() => setSelBadge(badge.id)}
+                style={{
+                  display:"flex",alignItems:"center",gap:12,padding:"12px 14px",
+                  background: selBadge===badge.id ? `${badge.color}20` : "var(--bg-2)",
+                  border: `1.5px solid ${selBadge===badge.id ? badge.color+"66" : "var(--border)"}`,
+                  borderRadius:12,cursor:"pointer",textAlign:"left",
+                  transition:"all .15s",
+                  boxShadow: selBadge===badge.id ? `0 0 12px ${badge.glow}` : "none",
+                }}>
+                <div style={{
+                  width:38,height:38,borderRadius:"50%",flexShrink:0,
+                  background:`${badge.color}20`,border:`1.5px solid ${badge.color}44`,
+                  display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
+                }}>{badge.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:700}}>{badge.label}</div>
+                  <div style={{fontSize:10,color:"var(--text-3)"}}>{badge.desc}</div>
+                </div>
+                <div style={{fontSize:11,color:"#f59e0b",fontWeight:700,flexShrink:0}}>
+                  +{badge.coinReward}🪙
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Preview + confirm */}
+      {selUser && selBadge && (
+        <div style={{
+          background:"var(--accent-bg)",border:"1.5px solid var(--accent-bd)",
+          borderRadius:16,padding:"16px 20px",marginBottom:16,
+          display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,
+        }}>
+          <div style={{fontSize:14}}>
+            Award <strong style={{color: BADGES[selBadge].color}}>{BADGES[selBadge].icon} {BADGES[selBadge].label}</strong> to <strong style={{color:"var(--accent-2)"}}>{selUserObj?.displayName}</strong> + {BADGES[selBadge].coinReward} coins?
+          </div>
+          <button onClick={handleAward} disabled={loading} style={{
+            background:"linear-gradient(135deg,var(--accent),var(--accent-2))",
+            border:"none",borderRadius:12,padding:"10px 20px",
+            color:"#fff",fontFamily:"var(--font)",fontSize:13,fontWeight:700,
+            cursor:"pointer",flexShrink:0,
+            boxShadow:"0 0 14px var(--glow-purple)",
+          }}>
+            {loading ? "Awarding…" : "Award Now 🏅"}
           </button>
         </div>
-      </Card>
-
-      <Card>
-        <SectionTitle>Broadcast History</SectionTitle>
-        {broadcastHistory.length === 0 ? (
-          <div style={{ fontSize: 13, color: "var(--text-3)", fontStyle: "italic" }}>No broadcasts sent yet.</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {broadcastHistory.map(b => {
-              const t = BROADCAST_TYPES.find(x => x.id === b.type) || BROADCAST_TYPES[0];
-              return (
-                <div key={b.id} style={{ display: "flex", gap: 14, padding: "12px 16px", background: "var(--bg-3)", borderRadius: "var(--r-md)", borderLeft: `3px solid ${t.color}` }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{b.message}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-3)" }}>
-                      {t.label} · by {b.sentBy} · {b.createdAt?.toDate ? format(b.createdAt.toDate(), "MMM d, HH:mm") : ""}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+      )}
     </div>
   );
+}
 
-  // ─────────────────────────────────────────────────────────
-  // TAB: Audit Logs
-  // ─────────────────────────────────────────────────────────
-  const LOG_ICONS = {
-    BAN_USER: "🚫", UNBAN_USER: "🔓", VERIFY_USER: "✅", UNVERIFY_USER: "❌",
-    GIVE_COINS: "🪙", AWARD_BADGE: "🏅", BROADCAST: "📢", UPDATE_CONFIG: "⚙️",
+// ── Coins tab ─────────────────────────────────────────────────
+function CoinsTab() {
+  const [users, setUsers] = useState([]);
+  const [selUser, setSelUser] = useState("");
+  const [amount, setAmount] = useState(100);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    getDocs(query(collection(db,"users"),orderBy("displayName"),limit(100)))
+      .then(snap => setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
+  }, []);
+
+  const handleGive = async () => {
+    if (!selUser || amount < 1) { setMsg("Select user and valid amount."); return; }
+    setLoading(true); setMsg("");
+    try {
+      const { updateDoc: upd, increment, doc: d } = await import("firebase/firestore");
+      const { db: database } = await import("../../firebase");
+      const ref = doc(database, "coins", selUser);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        await updateDoc(ref, { balance: (snap.data().balance||0) + amount });
+      } else {
+        await setDoc(ref, { balance: amount, uid: selUser });
+      }
+      // Notification
+      await addDoc(collection(db,"notifications"), {
+        type:"tip",fromUid:"system",fromUsername:"Nexus Owner",
+        toUid:selUser,message:`gifted you ${amount} coins 🪙${reason ? ` — "${reason}"` : ""}`,
+        amount,read:false,createdAt:serverTimestamp(),
+      });
+      const u = users.find(u=>u.id===selUser);
+      setMsg(`✓ Sent ${amount} coins to ${u?.displayName}`);
+      setAmount(100); setReason("");
+    } catch(err) { setMsg("Error: "+err.message); }
+    setLoading(false);
   };
 
-  const renderLogs = () => (
-    <div style={{ padding: 20 }}>
-      <PermBanner />
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <SectionTitle>Audit Log ({auditLogs.length} entries)</SectionTitle>
-          <StatusBadge color="green" label="Live" />
+  return (
+    <div style={{padding:20}}>
+      {msg && (
+        <div style={{
+          background:msg.startsWith("✓")?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)",
+          border:`1px solid ${msg.startsWith("✓")?"rgba(34,197,94,.25)":"rgba(239,68,68,.25)"}`,
+          borderRadius:12,padding:"10px 16px",fontSize:13,
+          color:msg.startsWith("✓")?"var(--green)":"var(--red)",marginBottom:16,
+        }}>{msg}</div>
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        <div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Recipient</div>
+          <select value={selUser} onChange={e=>setSelUser(e.target.value)}
+            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:12}}>
+            <option value="">— Select user —</option>
+            {users.map(u => <option key={u.id} value={u.id}>{u.displayName} (@{u.username})</option>)}
+          </select>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Amount</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+            {[50,100,200,500,1000].map(a => (
+              <button key={a} onClick={()=>setAmount(a)} style={{
+                padding:"7px 14px",border:`1.5px solid ${amount===a?"var(--accent)":"var(--border)"}`,
+                borderRadius:10,background:amount===a?"var(--accent-bg)":"var(--bg-2)",
+                color:amount===a?"var(--accent-2)":"var(--text-2)",
+                fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer",
+              }}>🪙 {a}</button>
+            ))}
+          </div>
+          <input type="number" value={amount} onChange={e=>setAmount(Number(e.target.value))} min={1} max={99999}
+            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:12}} />
+          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Reason (optional)</div>
+          <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Contest winner, bug bounty, etc..."
+            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:16}} />
+          <button onClick={handleGive} disabled={loading||!selUser}
+            style={{width:"100%",background:"linear-gradient(135deg,var(--accent),var(--accent-2))",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontFamily:"var(--font)",fontSize:14,fontWeight:700,cursor:loading||!selUser?"not-allowed":"pointer",boxShadow:"0 0 16px var(--glow-purple)"}}>
+            {loading?"Sending…":`Send 🪙 ${amount} Coins`}
+          </button>
         </div>
-        {logsLoading ? (
-          <div style={{ textAlign: "center", padding: 40 }}><div className="spinner" style={{ margin: "0 auto" }} /></div>
-        ) : auditLogs.length === 0 ? (
-          <div style={{ fontSize: 13, color: "var(--text-3)", fontStyle: "italic", textAlign: "center", padding: 40 }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>📜</div>
-            No actions recorded yet. Start managing users to see logs here.
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {auditLogs.map((log, i) => (
-              <div key={log.id} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < auditLogs.length - 1 ? "1px solid var(--border)" : "none", alignItems: "flex-start" }}>
-                <div style={{ width: 36, height: 36, borderRadius: "var(--r-md)", background: "var(--bg-3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
-                  {LOG_ICONS[log.action] || "⚡"}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{log.action?.replace(/_/g, " ")}</span>
-                    <StatusBadge color="cyan" label={log.performedBy || "owner"} />
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-3)" }}>{log.details}</div>
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", flexShrink: 0 }}>
-                  {log.createdAt?.toDate ? format(log.createdAt.toDate(), "MMM d, HH:mm:ss") : ""}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+        <div style={{background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:16,padding:20}}>
+          <h3 style={{fontSize:13,fontWeight:700,marginBottom:16,color:"var(--accent-2)"}}>🪙 Coin Economy</h3>
+          <p style={{fontSize:12,color:"var(--text-2)",lineHeight:1.7}}>
+            As owner you can gift coins to any user for:<br/><br/>
+            • Contest & giveaway winners<br/>
+            • Bug bounty rewards<br/>
+            • Community contributions<br/>
+            • Special events<br/>
+            • Early tester rewards<br/><br/>
+            All gifts are logged and the user receives a notification.
+          </p>
+        </div>
+      </div>
     </div>
   );
+}
 
-  // ─────────────────────────────────────────────────────────
-  // TAB: Core Config
-  // ─────────────────────────────────────────────────────────
-  const renderConfig = () => {
-    const toggleConfig = (key) => setConfig(prev => ({ ...prev, [key]: !prev[key] }));
-    const setConfigNum = (key, val) => setConfig(prev => ({ ...prev, [key]: Number(val) }));
+// ── Broadcast tab ─────────────────────────────────────────────
+function BroadcastTab() {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [type, setType] = useState("info");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
 
-    const TOGGLES = [
-      { key: "registrationEnabled", label: "User Registration",    desc: "Allow new users to sign up",           icon: "👤" },
-      { key: "dmEnabled",           label: "Direct Messages",      desc: "Allow users to send DMs",              icon: "💬" },
-      { key: "postsEnabled",        label: "Posts & Feed",         desc: "Allow users to create posts",          icon: "📝" },
-      { key: "storiesEnabled",      label: "Stories",              desc: "Allow 24-hour stories",                icon: "📸" },
-      { key: "coinsEnabled",        label: "Coins System",         desc: "Allow tipping with coins",             icon: "🪙" },
-      { key: "badgesEnabled",       label: "Badges System",        desc: "Show badges on profiles",              icon: "🏅" },
-      { key: "maintenanceMode",     label: "Maintenance Mode",     desc: "Show maintenance page to all users",   icon: "🔧", danger: true },
-    ];
-
-    const LIMITS = [
-      { key: "maxPostLength",      label: "Max Post Length",      unit: "chars", min: 100, max: 5000 },
-      { key: "maxBioLength",       label: "Max Bio Length",       unit: "chars", min: 50,  max: 500  },
-      { key: "minUsernameLength",  label: "Min Username Length",  unit: "chars", min: 2,   max: 10   },
-    ];
-
-    return (
-      <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
-        <PermBanner />
-        <Card>
-          <SectionTitle>Platform Feature Toggles</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {TOGGLES.map(t => (
-              <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", background: "var(--bg-3)", borderRadius: "var(--r-md)", border: `1px solid ${t.danger && config[t.key] ? "rgba(239,68,68,.3)" : "transparent"}` }}>
-                <span style={{ fontSize: 20 }}>{t.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: t.danger && config[t.key] ? "var(--red)" : "var(--text)" }}>{t.label}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)" }}>{t.desc}</div>
-                </div>
-                <Toggle active={config[t.key]} onClick={() => toggleConfig(t.key)} />
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <SectionTitle>Platform Limits</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {LIMITS.map(l => (
-              <div key={l.key}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{l.label}</span>
-                  <span style={{ fontSize: 13, fontFamily: "var(--mono)", color: "var(--accent-2)" }}>{config[l.key]} {l.unit}</span>
-                </div>
-                <input
-                  type="range" min={l.min} max={l.max} value={config[l.key]}
-                  onChange={e => setConfigNum(l.key, e.target.value)}
-                  style={{ width: "100%", accentColor: "var(--accent-2)" }}
-                />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-3)", marginTop: 2 }}>
-                  <span>{l.min}</span><span>{l.max}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <button
-          className="btn-primary"
-          onClick={saveConfig}
-          disabled={configSaving}
-          style={{ width: "100%", padding: 16, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}
-        >
-          {configSaving ? <><div className="spinner-sm" /> Saving...</>
-           : configSaved  ? "✅ Config Saved!"
-           : "⚙️ Save Configuration"}
-        </button>
-      </div>
-    );
+  const handleSend = async () => {
+    if (!title.trim() || !body.trim()) { setMsg("Fill in title and message."); return; }
+    setLoading(true); setMsg("");
+    try {
+      const users = await getDocs(collection(db,"users"));
+      const batch = [];
+      users.docs.forEach(d => {
+        batch.push(addDoc(collection(db,"notifications"), {
+          type:"broadcast",fromUid:"system",fromUsername:"Nexus",
+          toUid:d.id,message:body.trim(),title:title.trim(),
+          notifType:type,read:false,createdAt:serverTimestamp(),
+        }));
+      });
+      await Promise.all(batch);
+      setMsg(`✓ Broadcast sent to ${users.size} users!`);
+      setTitle(""); setBody("");
+    } catch(err) { setMsg("Error: "+err.message); }
+    setLoading(false);
   };
 
-  // ─────────────────────────────────────────────────────────
-  // Root render
-  // ─────────────────────────────────────────────────────────
-  const TABS = [
-    { id: "overview",   label: "Overview",      icon: "📊" },
-    { id: "users",      label: "User Control",  icon: "👤" },
-    { id: "chats",      label: "Chat Monitor",  icon: "👁️" },
-    { id: "broadcast",  label: "Broadcast",     icon: "📢" },
-    { id: "logs",       label: "Audit Logs",    icon: "📜" },
-    { id: "config",     label: "Core Config",   icon: "⚙️" },
+  const TYPES = [
+    {id:"info",    label:"📢 Info",    color:"#06b6d4"},
+    {id:"update",  label:"✨ Update",  color:"#a855f7"},
+    {id:"warning", label:"⚠️ Warning", color:"#f59e0b"},
+    {id:"event",   label:"🎉 Event",   color:"#22c55e"},
   ];
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.92)", backdropFilter: "blur(12px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        style={{ width: "100%", maxWidth: 1080, height: "90vh", background: "var(--bg-1)", border: "2px solid var(--accent)", borderRadius: "var(--r-xl)", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 0 120px rgba(124,58,237,.4), 0 40px 80px rgba(0,0,0,.8)" }}
-        onClick={e => e.stopPropagation()}
-      >
+    <div style={{padding:20,maxWidth:560}}>
+      {msg && (
+        <div style={{background:msg.startsWith("✓")?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)",border:`1px solid ${msg.startsWith("✓")?"rgba(34,197,94,.25)":"rgba(239,68,68,.25)"}`,borderRadius:12,padding:"10px 16px",fontSize:13,color:msg.startsWith("✓")?"var(--green)":"var(--red)",marginBottom:16}}>{msg}</div>
+      )}
+      <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Message Type</div>
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        {TYPES.map(t => (
+          <button key={t.id} onClick={()=>setType(t.id)} style={{
+            padding:"7px 14px",border:`1.5px solid ${type===t.id?t.color+"66":"var(--border)"}`,
+            borderRadius:10,background:type===t.id?t.color+"15":"var(--bg-2)",
+            color:type===t.id?t.color:"var(--text-2)",
+            fontFamily:"var(--font)",fontSize:11,fontWeight:700,cursor:"pointer",
+          }}>{t.label}</button>
+        ))}
+      </div>
+      <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Title</div>
+      <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. New Feature Alert!"
+        style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:16}} />
+      <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Message</div>
+      <textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="Write your broadcast message..." rows={5}
+        style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",resize:"vertical",marginBottom:16}} />
+      <button onClick={handleSend} disabled={loading||!title.trim()||!body.trim()}
+        style={{width:"100%",background:"linear-gradient(135deg,var(--accent),var(--accent-2))",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontFamily:"var(--font)",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 0 16px var(--glow-purple)"}}>
+        {loading?"Sending to all users…":"📣 Send to All Users"}
+      </button>
+      <p style={{fontSize:11,color:"var(--text-3)",textAlign:"center",marginTop:10}}>
+        This will send a notification to every single user on Nexus
+      </p>
+    </div>
+  );
+}
+
+// ── Reports tab ───────────────────────────────────────────────
+function ReportsTab() {
+  return (
+    <div style={{padding:20,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,color:"var(--text-3)",minHeight:200}}>
+      <span style={{fontSize:40}}>🚨</span>
+      <h3 style={{fontSize:15,fontWeight:700,color:"var(--text)"}}>Reports Dashboard</h3>
+      <p style={{fontSize:13,textAlign:"center"}}>When users report content, it will appear here. No reports yet.</p>
+    </div>
+  );
+}
+
+// ── Main dashboard ────────────────────────────────────────────
+export default function SuperOwnerDashboard({ onClose }) {
+  const [tab, setTab] = useState("overview");
+  const [stats, setStats] = useState({ users:0, posts:0, messages:0, coins:0, badges:0, stories:0 });
+
+  useEffect(() => {
+    const fetch = async () => {
+      const [users, posts, stories, badges] = await Promise.all([
+        getDocs(query(collection(db,"users"), limit(1000))),
+        getDocs(query(collection(db,"posts"), limit(1000))),
+        getDocs(query(collection(db,"stories"), limit(1000))),
+        getDocs(query(collection(db,"badges"), limit(1000))),
+      ]);
+      const badgeCount = badges.docs.reduce((acc,d) => acc + (d.data().list?.length||0), 0);
+      setStats({
+        users: users.size,
+        posts: posts.size,
+        messages: "—",
+        coins: "—",
+        badges: badgeCount,
+        stories: stories.size,
+      });
+    };
+    fetch();
+  }, []);
+
+  return createPortal(
+    <div style={{
+      position:"fixed",inset:0,zIndex:999,
+      background:"rgba(0,0,0,.9)",backdropFilter:"blur(12px)",
+      display:"flex",alignItems:"center",justifyContent:"center",padding:16,
+    }}>
+      <div style={{
+        background:"var(--bg-1)",border:"1.5px solid var(--border-2)",
+        borderRadius:24,width:"100%",maxWidth:860,
+        height:"min(700px,94vh)",display:"flex",flexDirection:"column",
+        overflow:"hidden",
+        boxShadow:"0 0 80px var(--glow-purple),0 0 160px rgba(124,58,237,.2),0 32px 80px rgba(0,0,0,.9)",
+        animation:"modal-enter .25s cubic-bezier(.16,1,.3,1)",
+      }}>
+
         {/* Header */}
-        <div style={{ padding: "18px 24px", background: "linear-gradient(90deg, rgba(124,58,237,.15), transparent)", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 44, height: 44, borderRadius: "var(--r-md)", background: "var(--accent-bg)", border: "1.5px solid var(--accent-bd)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, boxShadow: "0 0 20px var(--glow-purple)" }}>⚡</div>
+        <div style={{
+          display:"flex",alignItems:"center",justifyContent:"space-between",
+          padding:"18px 24px",borderBottom:"1px solid var(--border)",flexShrink:0,
+          background:"linear-gradient(90deg,rgba(124,58,237,.15) 0%,rgba(6,182,212,.08) 100%)",
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{
+              width:40,height:40,borderRadius:12,
+              background:"linear-gradient(135deg,var(--accent),var(--accent-2))",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              fontSize:20,boxShadow:"0 0 20px var(--glow-purple)",
+            }}>⚡</div>
             <div>
-              <h2 style={{ fontSize: 17, fontWeight: 900, letterSpacing: "-.03em", background: "linear-gradient(135deg, var(--accent-2), var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>SUPER OWNER DASHBOARD</h2>
-              <div style={{ fontSize: 10, color: "var(--accent-2)", fontWeight: 800, letterSpacing: ".1em" }}>AUTHORIZED ACCESS ONLY • NEXUS v2.5.0</div>
+              <h2 style={{fontSize:17,fontWeight:800,letterSpacing:"-.02em"}}>Super Owner Dashboard</h2>
+              <p style={{fontSize:11,color:"var(--text-3)"}}>Full administrative access · Nexus v2.0</p>
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{
+              background:"rgba(34,197,94,.12)",border:"1px solid rgba(34,197,94,.3)",
+              borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700,color:"var(--green)",
+            }}>● OWNER ACTIVE</div>
+            <button className="icon-btn" onClick={onClose}>✕</button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {/* Sidebar */}
-          <aside style={{ width: 210, background: "var(--bg)", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: 10, flexShrink: 0 }}>
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
-                  background: activeTab === tab.id ? "var(--accent-bg)" : "transparent",
-                  border: `1px solid ${activeTab === tab.id ? "var(--accent-bd)" : "transparent"}`,
-                  borderRadius: "var(--r-md)", color: activeTab === tab.id ? "var(--accent-2)" : "var(--text-2)",
-                  cursor: "pointer", textAlign: "left", marginBottom: 4, fontWeight: 700, fontSize: 13,
-                  transition: "all .15s", boxShadow: activeTab === tab.id ? "0 0 12px var(--glow-purple)" : "none"
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-            <div style={{ flex: 1 }} />
-            <div style={{ padding: "10px 12px", background: "rgba(34,197,94,.08)", borderRadius: "var(--r-md)", border: "1px solid rgba(34,197,94,.2)" }}>
-              <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 800, marginBottom: 2 }}>SYSTEM STATUS</div>
-              <div style={{ fontSize: 12, fontWeight: 700 }}>● ONLINE</div>
-            </div>
-          </aside>
+        {/* Tab bar */}
+        <div style={{
+          display:"flex",gap:2,padding:"10px 16px",
+          borderBottom:"1px solid var(--border)",flexShrink:0,
+          overflowX:"auto",
+        }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              display:"flex",alignItems:"center",gap:6,
+              padding:"7px 14px",border:"none",borderRadius:10,cursor:"pointer",
+              background:tab===t.id?"var(--accent)":"transparent",
+              color:tab===t.id?"#fff":"var(--text-3)",
+              fontFamily:"var(--font)",fontSize:12,fontWeight:700,
+              transition:"all .15s",flexShrink:0,
+              boxShadow:tab===t.id?"0 0 12px var(--glow-purple)":"none",
+            }}>
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
 
-          {/* Main */}
-          <main style={{ flex: 1, overflowY: "auto" }}>
-            {loading ? (
-              <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div className="spinner" />
-              </div>
-            ) : (
-              <>
-                {activeTab === "overview"  && renderOverview()}
-                {activeTab === "users"     && renderUserManagement()}
-                {activeTab === "chats"     && renderChatMonitoring()}
-                {activeTab === "broadcast" && renderBroadcast()}
-                {activeTab === "logs"      && renderLogs()}
-                {activeTab === "config"    && renderConfig()}
-              </>
-            )}
-          </main>
+        {/* Content */}
+        <div style={{flex:1,overflowY:"auto",minHeight:0}}>
+          {tab==="overview"  && <OverviewTab stats={stats} />}
+          {tab==="users"     && <UsersTab />}
+          {tab==="badges"    && <BadgesTab />}
+          {tab==="coins"     && <CoinsTab />}
+          {tab==="broadcast" && <BroadcastTab />}
+          {tab==="reports"   && <ReportsTab />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
