@@ -1,4 +1,3 @@
-import OnboardingTutorial from "./components/shared/OnboardingTutorial";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotifProvider } from "./context/NotifContext";
@@ -10,8 +9,8 @@ import DMPage from "./pages/DMPage";
 import ProfilePage from "./pages/ProfilePage";
 import FeedPage from "./pages/FeedPage";
 import NexusLogo from "./components/shared/NexusLogo";
-
-
+import OnboardingTutorial from "./components/shared/OnboardingTutorial";
+import WhatsNewModal from "./components/shared/WhatsNewModal";
 
 function Guard({ children, require: requireAuth }) {
   const { user, loading } = useAuth();
@@ -36,7 +35,13 @@ function AppRoutes() {
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/chat/:roomId" element={<ChatPage />} />
-        <Route path="/dm" element={<div className="page-empty"><div style={{ fontSize: 32 }}>💬</div><h2>Your Messages</h2><p>Select a conversation or find someone</p></div>} />
+        <Route path="/dm" element={
+          <div className="page-empty">
+            <div style={{ fontSize: 32 }}>💬</div>
+            <h2>Your Messages</h2>
+            <p>Select a conversation or find someone</p>
+          </div>
+        } />
         <Route path="/dm/:dmId" element={<DMPage />} />
         <Route path="/u/:username" element={<ProfilePage />} />
       </Route>
@@ -51,11 +56,14 @@ export default function App() {
       <AuthProvider>
         <NotifProvider>
           <BrowserRouter>
-            <AppRoutes />
+            <>
+              <AppRoutes />
+              <OnboardingTutorial />
+              <WhatsNewModal />
+            </>
           </BrowserRouter>
         </NotifProvider>
       </AuthProvider>
     </ThemeProvider>
-  <OnboardingTutorial />
   );
 }
