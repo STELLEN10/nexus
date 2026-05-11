@@ -15,6 +15,7 @@ import TipModal from "../components/shared/TipModal";
 import PostCard from "../components/social/PostCard";
 import CreatePost from "../components/social/CreatePost";
 import SettingsModal from "../components/settings/SettingsModal";
+import CoinWallet from "../components/shared/CoinWallet";
 
 // ── Followers / Following modal ────────────────────────────
 function FollowListModal({ uid, mode, onClose }) {
