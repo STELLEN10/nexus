@@ -131,26 +131,17 @@
  
  // ── Coins tab ─────────────────────────────────────────────────
  function CoinsTab() {
--  const [users, setUsers] = React.useState([]);
--  const [selUser, setSelUser] = React.useState("");
--  const [amount, setAmount] = React.useState(100);
--  const [reason, setReason] = React.useState("");
--  const [loading, setLoading] = React.useState(false);
--  const [msg, setMsg] = React.useState("");
-+  const [users, setUsers] = useState([]);
-+  const [selUser, setSelUser] = useState("");
-+  const [amount, setAmount] = useState(100);
-+  const [reason, setReason] = useState("");
-+  const [loading, setLoading] = useState(false);
-+  const [msg, setMsg] = useState("");
+const [users, setUsers] = useState([]);
+const [selUser, setSelUser] = useState("");
+const [amount, setAmount] = useState(100);
+const [reason, setReason] = useState("");
+const [loading, setLoading] = useState(false);
+const [msg, setMsg] = useState("");
   
--  React.useEffect(() => {
--    getDocs(query(collection(db, "users"), orderBy("displayName"), limit(100)))
--      .then(snap => setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-+  useEffect(() => {
-+    getDocs(query(collection(db, "users"), limit(100)))
-+      .then(snap => setUsers(usersFromSnapshot(snap)))
-+      .catch(err => setMsg("Error loading users: " + err.message));
+useEffect(() => {
+getDocs(query(collection(db, "users"), limit(100)))
+.then(snap => setUsers(usersFromSnapshot(snap)))
+.catch(err => setMsg("Error loading users: " + err.message));
    }, []);
   
    const handleGive = async () => {
