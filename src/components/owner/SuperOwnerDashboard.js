@@ -400,92 +400,147 @@ function BadgesTab() {
 
 // ── Coins tab ─────────────────────────────────────────────────
 function CoinsTab() {
-  const [users, setUsers] = useState([]);
-  const [selUser, setSelUser] = useState("");
-  const [amount, setAmount] = useState(100);
-  const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    getDocs(query(collection(db,"users"),orderBy("displayName"),limit(100)))
-      .then(snap => setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
+  const [users, setUsers] = React.useState([]);
+  const [selUser, setSelUser] = React.useState("");
+  const [amount, setAmount] = React.useState(100);
+  const [reason, setReason] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+ 
+  React.useEffect(() => {
+    getDocs(query(collection(db, "users"), orderBy("displayName"), limit(100)))
+      .then(snap => setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, []);
-
+ 
   const handleGive = async () => {
     if (!selUser || amount < 1) { setMsg("Select user and valid amount."); return; }
-    setLoading(true); setMsg("");
+    setLoading(true);
+    setMsg("");
     try {
-      const { updateDoc: upd, increment, doc: d } = await import("firebase/firestore");
-      const { db: database } = await import("../../firebase");
-      const ref = doc(database, "coins", selUser);
-      const snap = await getDoc(ref);
+      const coinRef = doc(db, "coins", selUser);
+      const snap    = await getDoc(coinRef);
+ 
       if (snap.exists()) {
-        await updateDoc(ref, { balance: (snap.data().balance||0) + amount });
+        // Use plain arithmetic — no increment() import needed
+        const current = snap.data().balance || 0;
+        await updateDoc(coinRef, { balance: current + amount });
       } else {
-        await setDoc(ref, { balance: amount, uid: selUser });
+        await setDoc(coinRef, { balance: amount, uid: selUser });
       }
+ 
       // Notification
-      await addDoc(collection(db,"notifications"), {
-        type:"tip",fromUid:"system",fromUsername:"Nexus Owner",
-        toUid:selUser,message:`gifted you ${amount} coins 🪙${reason ? ` — "${reason}"` : ""}`,
-        amount,read:false,createdAt:serverTimestamp(),
+      await addDoc(collection(db, "notifications"), {
+        type:         "tip",
+        fromUid:      "system",
+        fromUsername: "Nexus Owner",
+        toUid:        selUser,
+        message:      `gifted you ${amount} coins 🪙${reason ? ` — "${reason}"` : ""}`,
+        amount,
+        read:         false,
+        createdAt:    serverTimestamp(),
       });
-      const u = users.find(u=>u.id===selUser);
+ 
+      const u = users.find(u => u.id === selUser);
       setMsg(`✓ Sent ${amount} coins to ${u?.displayName}`);
-      setAmount(100); setReason("");
-    } catch(err) { setMsg("Error: "+err.message); }
-    setLoading(false);
+      setAmount(100);
+      setReason("");
+    } catch (err) {
+      setMsg("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
   };
-
+ 
   return (
-    <div style={{padding:20}}>
+    <div style={{ padding: 20 }}>
       {msg && (
         <div style={{
-          background:msg.startsWith("✓")?"rgba(34,197,94,.1)":"rgba(239,68,68,.1)",
-          border:`1px solid ${msg.startsWith("✓")?"rgba(34,197,94,.25)":"rgba(239,68,68,.25)"}`,
-          borderRadius:12,padding:"10px 16px",fontSize:13,
-          color:msg.startsWith("✓")?"var(--green)":"var(--red)",marginBottom:16,
+          background: msg.startsWith("✓") ? "rgba(34,197,94,.1)" : "rgba(239,68,68,.1)",
+          border: `1px solid ${msg.startsWith("✓") ? "rgba(34,197,94,.25)" : "rgba(239,68,68,.25)"}`,
+          borderRadius: 12, padding: "10px 16px", fontSize: 13,
+          color: msg.startsWith("✓") ? "var(--green)" : "var(--red)", marginBottom: 16,
         }}>{msg}</div>
       )}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+ 
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div>
-          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Recipient</div>
-          <select value={selUser} onChange={e=>setSelUser(e.target.value)}
-            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:12}}>
+          {/* Recipient */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+            Recipient
+          </div>
+          <select
+            value={selUser}
+            onChange={e => setSelUser(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: 12, color: "var(--text)", fontFamily: "var(--font)", fontSize: 13, outline: "none", marginBottom: 12 }}
+          >
             <option value="">— Select user —</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.displayName} (@{u.username})</option>)}
           </select>
-          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Amount</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
-            {[50,100,200,500,1000].map(a => (
-              <button key={a} onClick={()=>setAmount(a)} style={{
-                padding:"7px 14px",border:`1.5px solid ${amount===a?"var(--accent)":"var(--border)"}`,
-                borderRadius:10,background:amount===a?"var(--accent-bg)":"var(--bg-2)",
-                color:amount===a?"var(--accent-2)":"var(--text-2)",
-                fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:"pointer",
-              }}>🪙 {a}</button>
+ 
+          {/* Quick amounts */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+            Amount
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            {[50, 100, 200, 500, 1000].map(a => (
+              <button key={a} onClick={() => setAmount(a)} style={{
+                padding: "7px 14px",
+                border: `1.5px solid ${amount === a ? "var(--accent)" : "var(--border)"}`,
+                borderRadius: 10,
+                background: amount === a ? "var(--accent-bg)" : "var(--bg-2)",
+                color: amount === a ? "var(--accent-2)" : "var(--text-2)",
+                fontFamily: "var(--font)", fontSize: 12, fontWeight: 700, cursor: "pointer",
+              }}>
+                🪙 {a}
+              </button>
             ))}
           </div>
-          <input type="number" value={amount} onChange={e=>setAmount(Number(e.target.value))} min={1} max={99999}
-            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:12}} />
-          <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Reason (optional)</div>
-          <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Contest winner, bug bounty, etc..."
-            style={{width:"100%",padding:"10px 12px",background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:12,color:"var(--text)",fontFamily:"var(--font)",fontSize:13,outline:"none",marginBottom:16}} />
-          <button onClick={handleGive} disabled={loading||!selUser}
-            style={{width:"100%",background:"linear-gradient(135deg,var(--accent),var(--accent-2))",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontFamily:"var(--font)",fontSize:14,fontWeight:700,cursor:loading||!selUser?"not-allowed":"pointer",boxShadow:"0 0 16px var(--glow-purple)"}}>
-            {loading?"Sending…":`Send 🪙 ${amount} Coins`}
+ 
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(Number(e.target.value))}
+            min={1}
+            max={99999}
+            style={{ width: "100%", padding: "10px 12px", background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: 12, color: "var(--text)", fontFamily: "var(--font)", fontSize: 13, outline: "none", marginBottom: 12 }}
+          />
+ 
+          {/* Reason */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 8 }}>
+            Reason (optional)
+          </div>
+          <input
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder="Contest winner, bug bounty, etc..."
+            style={{ width: "100%", padding: "10px 12px", background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: 12, color: "var(--text)", fontFamily: "var(--font)", fontSize: 13, outline: "none", marginBottom: 16 }}
+          />
+ 
+          <button
+            onClick={handleGive}
+            disabled={loading || !selUser}
+            style={{
+              width: "100%",
+              background: "linear-gradient(135deg,var(--accent),var(--accent-2))",
+              border: "none", borderRadius: 12, padding: 12,
+              color: "#fff", fontFamily: "var(--font)", fontSize: 14, fontWeight: 700,
+              cursor: loading || !selUser ? "not-allowed" : "pointer",
+              boxShadow: "0 0 16px var(--glow-purple)",
+            }}
+          >
+            {loading ? "Sending…" : `Send 🪙 ${amount} Coins`}
           </button>
         </div>
-        <div style={{background:"var(--bg-2)",border:"1.5px solid var(--border)",borderRadius:16,padding:20}}>
-          <h3 style={{fontSize:13,fontWeight:700,marginBottom:16,color:"var(--accent-2)"}}>🪙 Coin Economy</h3>
-          <p style={{fontSize:12,color:"var(--text-2)",lineHeight:1.7}}>
-            As owner you can gift coins to any user for:<br/><br/>
-            • Contest & giveaway winners<br/>
-            • Bug bounty rewards<br/>
-            • Community contributions<br/>
-            • Special events<br/>
-            • Early tester rewards<br/><br/>
+ 
+        <div style={{ background: "var(--bg-2)", border: "1.5px solid var(--border)", borderRadius: 16, padding: 20 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: "var(--accent-2)" }}>🪙 Coin Economy</h3>
+          <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
+            As owner you can gift coins to any user for:<br /><br />
+            • Contest &amp; giveaway winners<br />
+            • Bug bounty rewards<br />
+            • Community contributions<br />
+            • Special events<br />
+            • Early tester rewards<br /><br />
             All gifts are logged and the user receives a notification.
           </p>
         </div>
