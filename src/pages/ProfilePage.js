@@ -363,26 +363,29 @@ export default function ProfilePage() {
       </div>
 
       {/* ═══ Posts feed ═══ */}
-      <div className="feed-wrap" style={{ marginTop: 16 }}>
-        <CreatePost wallOwner={uid} onPost={handleCreatePost} />
+<div className="feed-wrap" style={{ marginTop: 16 }}>
 
-        {postsLoading
-          ? [1, 2].map(i => <div key={i} className="skeleton-card" />)
-          : posts.length === 0
-            ? <div className="empty-state"><p>No posts yet</p></div>
-            : posts.map(post => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUser={user}
-                  onLike={() => likePost(post.id, post.likes?.includes(user?.uid))}
-                  onReact={(emoji) => reactPost(post.id, emoji, post)}
-                  onDelete={post.authorId === user?.uid ? () => deletePost(post.id) : null}
-                  onAuthorClick={() => navigate(`/u/${post.authorName}`)}
-                />
-              ))
-        }
-      </div>
+  {isOwnProfile && <CoinWallet />}
+
+  <CreatePost wallOwner={uid} onPost={handleCreatePost} />
+
+  {postsLoading
+    ? [1, 2].map(i => <div key={i} className="skeleton-card" />)
+    : posts.length === 0
+      ? <div className="empty-state"><p>No posts yet</p></div>
+      : posts.map(post => (
+          <PostCard
+            key={post.id}
+            post={post}
+            currentUser={user}
+            onLike={() => likePost(post.id, post.likes?.includes(user?.uid))}
+            onReact={(emoji) => reactPost(post.id, emoji, post)}
+            onDelete={post.authorId === user?.uid ? () => deletePost(post.id) : null}
+            onAuthorClick={() => navigate(`/u/${post.authorName}`)}
+          />
+        ))
+  }
+</div>
 
       {/* ═══ Modals ═══ */}
       {followModal && (
