@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  arrayUnion,
+} from "firebase/firestore";
+
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-
-export { BADGES, useBadges, useMyBadges, awardBadge, useBadgeShop } from "./useBadgeSystem";
 
 // ── Badge definitions ────────────────────────────────────────
 export const BADGES = {
@@ -15,6 +19,7 @@ export const BADGES = {
     glow: "#f59e0b66",
     desc: "One of the first to join Nexus",
   },
+
   founder: {
     id: "founder",
     label: "Founder",
@@ -23,6 +28,7 @@ export const BADGES = {
     glow: "#a855f766",
     desc: "Nexus founding member",
   },
+
   verified: {
     id: "verified",
     label: "Verified",
@@ -31,6 +37,7 @@ export const BADGES = {
     glow: "#06b6d466",
     desc: "Verified account",
   },
+
   creator: {
     id: "creator",
     label: "Creator",
@@ -39,14 +46,16 @@ export const BADGES = {
     glow: "#ec489966",
     desc: "Content creator on Nexus",
   },
+
   og: {
     id: "og",
     label: "OG",
     icon: "🔥",
     color: "#ef4444",
     glow: "#ef444466",
-    desc: "Original Gangster — been here from day one",
+    desc: "Original member from day one",
   },
+
   social_butterfly: {
     id: "social_butterfly",
     label: "Social",
@@ -55,6 +64,7 @@ export const BADGES = {
     glow: "#22c55e66",
     desc: "Has 50+ followers",
   },
+
   storyteller: {
     id: "storyteller",
     label: "Storyteller",
@@ -65,36 +75,68 @@ export const BADGES = {
   },
 };
 
-// Auto-assign early_adopter to all users on first fetch
+// ── Fetch user badges ────────────────────────────────────────
 export function useBadges(uid) {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!uid) return;
-    const ref = doc(db, "badges", uid);
-    getDoc(ref).then(snap => {
-      if (snap.exists()) {
-        setBadges(snap.data().list || []);
-      } else {
-        // Auto-assign early_adopter to everyone currently on the platform
-        setDoc(ref, { list: ["early_adopter"] });
-        setBadges(["early_adopter"]);
-      }
+    if (!uid) {
+      setBadges([]);
       setLoading(false);
-    });
+      return;
+    }
+
+    const fetchBadges = async () => {
+      try {
+        const ref = doc(db, "badges", uid);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          setBadges(snap.data().list || []);
+        } else {
+          // Auto-assign starter badge
+          await setDoc(ref, {
+            list: ["early_adopter"],
+          });
+
+          setBadges(["early_adopter"]);
+        }
+      } catch (err) {
+        console.error("Error fetching badges:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBadges();
   }, [uid]);
 
   return { badges, loading };
 }
 
+// ── Current logged-in user badges ────────────────────────────
 export function useMyBadges() {
   const { user } = useAuth();
   return useBadges(user?.uid);
 }
 
-// Admin function — award a badge to a user
+// ── Award badge to user ──────────────────────────────────────
 export async function awardBadge(uid, badgeId) {
-  const ref = doc(db, "badges", uid);
-  await setDoc(ref, { list: arrayUnion(badgeId) }, { merge: true });
+  try {
+    const ref = doc(db, "badges", uid);
+
+    await setDoc(
+      ref,
+      {
+        list: arrayUnion(badgeId),
+      },
+      { merge: true }
+    );
+
+    return true;
+  } catch (err) {
+    console.error("Error awarding badge:", err);
+    return false;
+  }
 }
