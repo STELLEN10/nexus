@@ -3,6 +3,14 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
+export {
+  BADGES,
+  useBadges,
+  useMyBadges,
+  awardBadge,
+  useBadgeShop,
+} from "./useBadgeSystem";
+
 // ── Badge definitions ────────────────────────────────────────
 export const BADGES = {
   early_adopter: {
