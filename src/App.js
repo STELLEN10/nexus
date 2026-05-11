@@ -1,3 +1,4 @@
+import OnboardingTutorial from "./components/shared/OnboardingTutorial";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotifProvider } from "./context/NotifContext";
@@ -9,6 +10,8 @@ import DMPage from "./pages/DMPage";
 import ProfilePage from "./pages/ProfilePage";
 import FeedPage from "./pages/FeedPage";
 import NexusLogo from "./components/shared/NexusLogo";
+
+
 
 function Guard({ children, require: requireAuth }) {
   const { user, loading } = useAuth();
@@ -53,5 +56,6 @@ export default function App() {
         </NotifProvider>
       </AuthProvider>
     </ThemeProvider>
+  <OnboardingTutorial />
   );
 }
