@@ -1,15 +1,24 @@
 // src/components/owner/SuperOwnerDashboard.js
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import {
-  collection, getDocs, doc, updateDoc, deleteDoc,
-  query, orderBy, limit, getDoc, setDoc, addDoc,
-  serverTimestamp, where, onSnapshot
-} from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, limit, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import { awardBadge, BADGES } from "../../hooks/useBadgeSystem";
 
 // ── Tabs ──────────────────────────────────────────────────────
+
+const sortUsersByDisplayName = users =>
+  [...users].sort((a, b) =>
+    (a.displayName || a.username || "").localeCompare(
+      b.displayName || b.username || "",
+      undefined,
+      { sensitivity: "base" }
+    )
+  );
+
+const usersFromSnapshot = snap =>
+  sortUsersByDisplayName(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+
 const TABS = [
   { id:"overview",   icon:"📊", label:"Overview"      },
   { id:"users",      icon:"👥", label:"Users"         },
@@ -268,8 +277,9 @@ function BadgesTab() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    getDocs(query(collection(db,"users"),orderBy("displayName"),limit(100)))
-      .then(snap => setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
+    getDocs(query(collection(db,"users"),limit(100)))
+      .then(snap => setUsers(usersFromSnapshot(snap)))
+      .catch(err => setMsg("Error loading users: " + err.message));
   }, []);
 
   const filtered = users.filter(u =>
@@ -400,16 +410,17 @@ function BadgesTab() {
 
 // ── Coins tab ─────────────────────────────────────────────────
 function CoinsTab() {
-  const [users, setUsers] = React.useState([]);
-  const [selUser, setSelUser] = React.useState("");
-  const [amount, setAmount] = React.useState(100);
-  const [reason, setReason] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [msg, setMsg] = React.useState("");
+  const [users, setUsers] = useState([]);
+  const [selUser, setSelUser] = useState("");
+  const [amount, setAmount] = useState(100);
+  const [reason, setReason] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
  
-  React.useEffect(() => {
-    getDocs(query(collection(db, "users"), orderBy("displayName"), limit(100)))
-      .then(snap => setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  useEffect(() => {
+    getDocs(query(collection(db, "users"), limit(100)))
+      .then(snap => setUsers(usersFromSnapshot(snap)))
+      .catch(err => setMsg("Error loading users: " + err.message));
   }, []);
  
   const handleGive = async () => {
