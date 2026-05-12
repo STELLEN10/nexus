@@ -1,449 +1,355 @@
-<div align="center">
-
 # ⚡ NEXUS
 
-### Chat · Share · Connect
+<div align="center">
 
-**A full-stack social platform built with React 18 & Firebase**
+<img src="https://raw.githubusercontent.com/STELLEN10/nexus/main/public/logo192.png" width="140"/>
 
-![Version](https://img.shields.io/badge/version-2.0.0-7c3aed?style=for-the-badge)
-![React](https://img.shields.io/badge/React-18-06b6d4?style=for-the-badge&logo=react)
-![Firebase](https://img.shields.io/badge/Firebase-10-f59e0b?style=for-the-badge&logo=firebase)
-![License](https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge)
+<br/>
 
-[Live Demo](https://nexus-chat-10.vercel.app) · [Report Bug](mailto:support@nexus.app) · [Request Feature](mailto:support@nexus.app)
+# **NEXUS**
+
+### *The Social Universe Engine*
+
+<img src="https://readme-typing-svg.demolab.com?font=Space+Grotesk&weight=700&size=26&pause=1000&color=8B5CF6&center=true&vCenter=true&width=700&lines=Chat+in+Real+Time;Build+Communities;Express+Your+Vibe;Create+Your+Digital+Identity;The+Future+of+Social+Platforms" />
+
+<br/>
+
+<p align="center">
+  <img src="https://img.shields.io/github/stars/STELLEN10/nexus?style=for-the-badge&color=8b5cf6">
+  <img src="https://img.shields.io/github/forks/STELLEN10/nexus?style=for-the-badge&color=06b6d4">
+  <img src="https://img.shields.io/github/license/STELLEN10/nexus?style=for-the-badge&color=22c55e">
+  <img src="https://img.shields.io/badge/React-18-111827?style=for-the-badge&logo=react&logoColor=61dafb">
+  <img src="https://img.shields.io/badge/Firebase-10-111827?style=for-the-badge&logo=firebase&logoColor=f59e0b">
+</p>
+
+<br/>
+
+### 🚀 LIVE EXPERIENCE
+
+[🌐 Enter Nexus](https://nexus-chat-10.vercel.app)
+
+<br/>
+
+> ### *Built solo by STELLEN.*
+>
+> ### *No templates. No shortcuts. Pure creation.*
 
 </div>
 
 ---
 
-## 📖 Table of Contents
+<br/>
 
-- [About](#-about)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Project Structure](#-project-structure)
-- [Firebase Setup](#-firebase-setup)
-- [Deployment](#-deployment)
-- [Badge System](#-badge-system)
-- [Owner Dashboard](#-owner-dashboard)
-- [Security](#-security)
-- [Roadmap](#-roadmap)
-- [License](#-license)
+# 🌌 WHAT IS NEXUS?
 
----
+```txt
+Nexus is not just another social app.
 
-## 🌟 About
+It is a digital universe where messaging, stories,
+profiles, vibes, communities, and identity merge
+into one futuristic ecosystem.
 
-Nexus is a full-featured real-time social platform built entirely solo using React and Firebase. It combines the best parts of Discord, Instagram, and Snapchat into one cohesive experience — real-time channels, private messaging, stories, a social feed, vibes, badges, and an in-app coin economy.
-
-> Built from scratch. No templates. No team. Just vision and code.
+Built with React + Firebase from scratch.
+Designed to feel alive.
+```
 
 ---
 
-## ✨ Features
+# ⚡ CORE EXPERIENCE
 
-### 💬 Messaging
-- **Real-time channels** — public & private chat rooms with typing indicators, reactions, edit/delete, reply threading
-- **Direct messages** — 1-on-1 private chats with read receipts and soft-delete
-- **Group DMs** — multi-person conversations
-- **Voice messages** — record and send audio clips directly in chat
-- **GIFs & Stickers** — full Giphy integration + custom image uploads
-- **Chat wallpapers** — 10 custom backgrounds per DM conversation
+<table>
+<tr>
+<td width="50%">
 
-### 📱 Social Feed
-- **Posts** — text + image posts with emoji reactions and comments
-- **Personalised feed** — shows posts from people you follow
-- **Stories** — 24-hour photo & text stories with progress bars, pause-on-hold, and view counts
-- **Likes & comments** — full interaction system with real-time counts
+## 💬 REAL-TIME CHAT
 
-### 👤 Profiles
-- **Custom avatars** — upload any image, stored in Firebase Storage
-- **Bio & username** — editable inline on your profile
-- **Followers / Following** — follow system with counts and modal lists
-- **Badge showcase** — display earned badges with benefit tooltips
-- **Wall posts** — others can post directly on your profile
+* Public & private channels
+* Typing indicators
+* Emoji reactions
+* Reply threads
+* Message editing
+* Voice notes
+* GIF support
+* Wallpapers per DM
 
-### 🔥 Vibes
-- 12 animated mood rings that appear on your avatar
-- Real-time via Firebase RTDB — everyone sees your vibe instantly
-- Emoji badge attached to avatar with glowing animated ring
+</td>
+<td width="50%">
 
-### 🏅 Badge System
-10 unique badges each with real benefits and coin rewards:
+## 📱 SOCIAL FEED
 
-| Badge | Coins | Key Benefit |
-|-------|-------|-------------|
-| 🌟 Early Adopter | +200 | Gold profile border |
-| 👑 Founder | +500 | Crown border + exclusive theme |
-| ✓ Verified | +300 | Blue checkmark everywhere |
-| 🎨 Creator | +250 | Gradient border + analytics |
-| 🔥 OG | +400 | Fire border + red theme |
-| 🦋 Social | +150 | Extra DM slots |
-| 📖 Storyteller | +100 | 48-hour stories |
-| 🐳 Whale | +350 | Top tipper recognition |
-| 🦉 Night Owl | +75 | Dark exclusive themes |
-| ⚡ Legend | +1000 | All themes + LEGEND title |
+* Stories system
+* Image posts
+* Comments & reactions
+* Real-time engagement
+* Personalised feed
+* Profile wall posts
+* Creator interactions
 
-### 🪙 Coin Economy
-- Every new user starts with 100 coins
-- Earn coins by receiving badges
-- Tip creators directly from their profile
-- Badge shop — spend coins to unlock badges with real benefits
-- Owner can gift coins to any user
-
-### 🎨 Customisation
-- **6 accent themes** — Violet, Cyan, Rose, Emerald, Amber, Pink
-- **Light & Dark mode** — system-aware toggle
-- **Chat wallpapers** — per-conversation background patterns
-- **Custom profile borders** — unlocked via badges
-
-### 🔔 Notifications
-- Real-time notification panel with filter tabs
-- Badge award notifications with benefit showcase
-- Tip notifications with coin amount
-- Follow, like, comment, wall post alerts
-- Mobile bottom sheet on small screens
-
-### 🎓 Onboarding
-- 9-step interactive tutorial for new users
-- Skip available at any time
-- "What's New" popup on version updates
-- Dot navigation and progress bar
+</td>
+</tr>
+</table>
 
 ---
 
-## 🛠 Tech Stack
+# 🔥 THE VIBE SYSTEM
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, React Router v6 |
-| Styling | Pure CSS with CSS variables (no UI library) |
-| Auth | Firebase Authentication (email/password) |
-| Database | Cloud Firestore |
-| Realtime | Firebase Realtime Database |
-| Storage | Firebase Storage |
-| Hosting | Vercel |
-| GIFs | Giphy API |
-| Dates | date-fns |
+<div align="center">
+
+## Your Mood. Your Energy. Your Aura.
+
+</div>
+
+```diff
++ 12 animated vibe rings
++ Live Firebase sync
++ Real-time profile aura system
++ Emoji-powered presence
++ Dynamic glowing effects
+```
+
+> Nexus transforms emotion into identity.
 
 ---
 
-## 🚀 Getting Started
+# 🏅 BADGE ECOSYSTEM
 
-### Prerequisites
+<div align="center">
 
-- Node.js 18+
-- npm or yarn
-- Firebase project (free Spark plan works)
-- Giphy API key (free)
+| Badge            | Power                   |
+| ---------------- | ----------------------- |
+| 👑 Founder       | Exclusive Founder Theme |
+| ⚡ Legend         | Unlock Everything       |
+| ✓ Verified       | Blue Check Everywhere   |
+| 🔥 OG            | Fire Border Theme       |
+| 🎨 Creator       | Creator Analytics       |
+| 🌟 Early Adopter | Gold Borders            |
 
-### Installation
+</div>
+
+<br/>
+
+```txt
+Badges are not cosmetic only.
+They unlock real platform abilities,
+themes, boosts, and rewards.
+```
+
+---
+
+# 🪙 NEXUS ECONOMY
+
+<div align="center">
+
+## Earn. Tip. Unlock. Flex.
+
+</div>
+
+* 💰 Coin wallet system
+* 🎁 Creator tipping
+* 🏅 Buy badges
+* ⚡ Reward progression
+* 👑 Owner gifting powers
+
+---
+
+# 🎨 CUSTOMISATION
+
+<table>
+<tr>
+<td>
+
+### THEMES
+
+* Violet
+* Cyan
+* Emerald
+* Rose
+* Amber
+* Pink
+
+</td>
+<td>
+
+### PERSONALISATION
+
+* Animated borders
+* Chat wallpapers
+* Dark / light mode
+* Vibe effects
+* Profile styling
+
+</td>
+</tr>
+</table>
+
+---
+
+# 🛠 TECH STACK
+
+<div align="center">
+
+| Frontend | Backend  | Realtime | Hosting |
+| -------- | -------- | -------- | ------- |
+| React 18 | Firebase | RTDB     | Vercel  |
+
+</div>
+
+<br/>
+
+```yaml
+Frontend:
+  - React 18
+  - React Router v6
+
+Backend:
+  - Firebase Auth
+  - Firestore
+  - Firebase Storage
+
+Realtime:
+  - Firebase RTDB
+
+Extras:
+  - Giphy API
+  - date-fns
+```
+
+---
+
+# 🚀 QUICK START
+
+## Clone & Run
 
 ```bash
-# Clone the repo
 git clone https://github.com/STELLEN10/nexus.git
+
 cd nexus
 
-# Install dependencies
 npm install
 
-# Copy environment variables
-cp .env.example .env
-
-# Fill in your Firebase config in .env
-# then start the dev server
 npm start
 ```
 
-The app runs at `http://localhost:3000`
-
 ---
 
-## 🔑 Environment Variables
-
-Create a `.env` file in the root directory:
+# 🔑 ENVIRONMENT VARIABLES
 
 ```env
-REACT_APP_FIREBASE_API_KEY=your_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
-REACT_APP_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
-REACT_APP_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.region.firebasedatabase.app
-REACT_APP_GIPHY_KEY=your_giphy_key
-```
-
-> ⚠️ Never commit your `.env` file. It's already in `.gitignore`.
-
----
-
-## 📁 Project Structure
-
-```
-nexus/
-├── public/
-│   └── index.html              # App shell with favicon
-├── src/
-│   ├── components/
-│   │   ├── chat/               # MessageBubble, TypingIndicator
-│   │   ├── dm/                 # DMBubble, StickerPicker, VoiceRecorder
-│   │   ├── owner/              # SuperOwnerDashboard
-│   │   ├── settings/           # SettingsModal
-│   │   ├── shared/             # Avatar, BadgeDisplay, NotificationBell, TipModal
-│   │   ├── social/             # PostCard, CreatePost
-│   │   ├── stories/            # StoriesBar, StoryViewer, CreateStoryModal
-│   │   └── vibe/               # VibeAvatar, VibePicker
-│   ├── context/
-│   │   ├── AuthContext.js      # Auth state + profile management
-│   │   ├── NotifContext.js     # Browser push notifications
-│   │   └── ThemeContext.js     # Theme + color scheme management
-│   ├── hooks/
-│   │   ├── useBadgeSystem.js   # Badges, shop, awarding
-│   │   ├── useChat.js          # Channels, messages, typing
-│   │   ├── useCoins.js         # Coin wallet, tipping, owner mode
-│   │   ├── useDMs.js           # Direct messages, requests
-│   │   ├── useFeed.js          # Posts, reactions, comments
-│   │   ├── useFollow.js        # Follow/unfollow system
-│   │   ├── useGroupDMs.js      # Group conversations
-│   │   ├── useNotifications.js # Notification bell data
-│   │   ├── useStories.js       # Stories CRUD
-│   │   ├── useSuggestedPeople.js # Friend recommendations
-│   │   ├── useUsers.js         # User search, profiles, online status
-│   │   ├── useVibe.js          # Vibe system
-│   │   └── useWallpaper.js     # Chat wallpapers
-│   ├── lib/
-│   │   ├── rateLimiter.js      # Client-side rate limiting
-│   │   └── validation.js       # Input sanitisation & validation
-│   ├── pages/
-│   │   ├── AuthPage.js         # Login & register
-│   │   ├── ChatPage.js         # Channel chat view
-│   │   ├── DMPage.js           # Direct message view
-│   │   ├── FeedPage.js         # Social feed + stories
-│   │   ├── MainLayout.js       # Shell, rail nav, sidebar, mobile tabs
-│   │   └── ProfilePage.js      # User profiles
-│   ├── App.js
-│   ├── firebase.js             # Firebase initialisation
-│   └── index.css               # All styles (CSS variables, components)
-├── .env.example
-├── .gitignore
-└── package.json
+REACT_APP_FIREBASE_API_KEY=
+REACT_APP_FIREBASE_AUTH_DOMAIN=
+REACT_APP_FIREBASE_PROJECT_ID=
+REACT_APP_FIREBASE_STORAGE_BUCKET=
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=
+REACT_APP_FIREBASE_APP_ID=
+REACT_APP_FIREBASE_DATABASE_URL=
+REACT_APP_GIPHY_KEY=
 ```
 
 ---
 
-## 🔥 Firebase Setup
-
-### 1. Firestore Indexes
-
-Create these composite indexes in Firebase Console → Firestore → Indexes:
-
-| Collection | Fields | Order |
-|-----------|--------|-------|
-| `dms` | `members` (Array) · `lastActivity` | Descending |
-| `posts` | `authorId` · `createdAt` | Descending |
-| `stories` | `authorId` · `createdAt` | Descending |
-| `notifications` | `toUid` · `createdAt` | Descending |
-
-> Tip: Just run the app and click the index links that appear in the browser console — they create themselves.
-
-### 2. Firestore Security Rules
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{uid} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == uid;
-    }
-    match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
-    }
-    match /dms/{dmId} {
-      allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
-    }
-    match /notifications/{notifId} {
-      allow read, update: if request.auth != null && resource.data.toUid == request.auth.uid;
-      allow create: if request.auth != null;
-    }
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-### 3. Realtime Database Rules
-
-```json
-{
-  "rules": {
-    "presence": {
-      "$uid": {
-        ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    },
-    "vibes": {
-      "$uid": {
-        ".read": "auth != null",
-        ".write": "auth != null && auth.uid === $uid"
-      }
-    },
-    "messages": {
-      "$roomId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      }
-    },
-    "dms": {
-      "$dmId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      }
-    },
-    "typing": {
-      "$roomId": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      }
-    }
-  }
-}
-```
-
-### 4. Storage Rules
-
-```javascript
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 10 * 1024 * 1024
-        && (request.resource.contentType.matches('image/.*')
-            || request.resource.contentType.matches('audio/.*'));
-    }
-  }
-}
-```
-
----
-
-## 🌐 Deployment
-
-### Deploy to Vercel
+# 📂 PROJECT STRUCTURE
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Set environment variables in Vercel dashboard
-# Project Settings → Environment Variables
-# Add all variables from your .env file
+src/
+├── components/
+├── context/
+├── hooks/
+├── pages/
+├── lib/
+├── firebase.js
+└── App.js
 ```
 
-### After deploying
-1. Add your Vercel domain to Firebase Console → Authentication → Authorized Domains
-2. Update `REACT_APP_FIREBASE_AUTH_DOMAIN` if needed
-
 ---
 
-## 🏅 Badge System
+# 🔒 SECURITY
 
-Badges are stored in the `badges` Firestore collection with the document ID being the user's UID.
-
-### Awarding a badge programmatically
-
-```javascript
-import { awardBadge } from "./hooks/useBadgeSystem";
-
-// Awards the badge, gives coins, and sends a notification automatically
-await awardBadge(userId, "verified");
+```diff
++ Firebase Security Rules
++ Sanitised Inputs
++ Rate Limiting
++ Upload Validation
++ Protected DMs
++ Secure Storage Rules
 ```
 
-### Badge shop
+---
 
-Users can spend coins to purchase available badges from the Badge Shop, accessible via Settings. Each badge includes a coin price, reward, and list of benefits.
+# 🌍 ROADMAP
+
+```txt
+[ ] Voice Calls
+[ ] Video Calls
+[ ] Screen Sharing
+[ ] Native Mobile Apps
+[ ] Creator Monetisation
+[ ] AI Smart Features
+[ ] Discover System
+[ ] Push Notifications
+```
 
 ---
 
-## ⚡ Owner Dashboard
+# 👑 OWNER SYSTEM
 
-Access the owner dashboard via **Profile → Settings → Owner tab**.
+<table>
+<tr>
+<td>
 
-**Password:** Set in `SettingsModal.js` → `OwnerSection` function.
+### ADMIN POWERS
 
-### Owner capabilities
+* User moderation
+* Badge gifting
+* Coin economy control
+* Global broadcasts
+* Registration locking
+* CSV exports
 
-| Feature | Description |
-|---------|-------------|
-| 📊 Overview | Live stats across all collections |
-| 👥 User Management | Search, ban, unban, delete any user |
-| 🏅 Award Badges | Give any badge + coins to any user |
-| 🪙 Coin Gifts | Send any coin amount to any user |
-| 📣 Broadcast | Send notification to every user |
-| 🔒 Lock Registrations | Prevent new signups |
-| 💾 Export CSV | Download full user database |
-| ∞ Unlimited Coins | Owner wallet shows ∞ and bypasses balance checks |
+</td>
+<td>
 
----
+### LIVE CONTROL
 
-## 🔒 Security
+```txt
+∞ Unlimited Coins
+∞ Full Database Access
+∞ Platform Analytics
+∞ Real-time Moderation
+```
 
-- All user input passes through `src/lib/validation.js` before any database write
-- Client-side rate limiting via `src/lib/rateLimiter.js` (auth: 5/10min, messages: 30/min, posts: 10/hr)
-- Firebase config stored in environment variables — never hardcoded
-- Firestore Security Rules enforce read/write permissions server-side
-- Avatar uploads restricted to Firebase Storage URLs only
-- Sticker URLs validated against allowlist (Giphy domains + Firebase Storage)
-- HTML injection stripped from all text inputs via `sanitizeText()`
-
----
-
-## 🗺 Roadmap
-
-### Coming soon
-- [ ] Voice calls (WebRTC)
-- [ ] Video calls
-- [ ] Screen sharing
-- [ ] Explore / Discover page
-- [ ] Pinned messages in channels
-- [ ] Message threads (Slack-style)
-- [ ] Block & mute users
-- [ ] Push notifications (Firebase Cloud Messaging)
-- [ ] Polls in posts and chats
-- [ ] Native iOS & Android apps (React Native)
-
-### Monetisation (planned)
-- [ ] Nexus Pro subscription
-- [ ] Real money tipping via Stripe
-- [ ] Paid exclusive channels
-- [ ] Creator fund
+</td>
+</tr>
+</table>
 
 ---
 
-## 📄 License
+# 🌌 THE VISION
 
-MIT License — see [LICENSE](LICENSE) for details.
+<div align="center">
+
+## Nexus is designed to feel like the future.
+
+Not a clone.
+Not a template.
+
+A platform with its own energy,
+its own identity,
+its own atmosphere.
+
+Built line by line by STELLEN.
+
+</div>
 
 ---
 
 <div align="center">
 
-**Built with 🔥 by STELLEN**
+# ⚡ STELLEN
 
-*Nexus — Chat. Share. Connect.*
+### *"We don't chase the future. We build it."*
+
+<br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=8b5cf6&height=120&section=footer"/>
 
 </div>
