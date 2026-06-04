@@ -1,13 +1,13 @@
-// src/components/shared/BadgeShopModal.js
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { BADGES, useBadgeShop } from "../../hooks/useBadgeSystem";
 import { useCoins } from "../../hooks/useCoins";
+import AppIcon from "./AppIcon";
 
 export default function BadgeShopModal({ onClose }) {
   const { balance } = useCoins();
   const { shopBadges, badges, buying, error, purchaseBadge } = useBadgeShop();
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(shopBadges[0]?.id || null);
   const [success, setSuccess] = useState(null);
 
   const handleBuy = async (badgeId) => {
@@ -23,42 +23,44 @@ export default function BadgeShopModal({ onClose }) {
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{
-      position:"fixed",inset:0,zIndex:500,
-      background:"rgba(0,0,0,.85)",backdropFilter:"blur(8px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20,
+      position:"fixed", inset:0, zIndex:500,
+      background:"rgba(0,0,0,.85)", backdropFilter:"blur(8px)",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20,
     }}>
       <div style={{
-        background:"var(--bg-1)",border:"1.5px solid var(--border-2)",
-        borderRadius:24,width:"100%",maxWidth:520,maxHeight:"90vh",
-        display:"flex",flexDirection:"column",overflow:"hidden",
+        background:"var(--bg-1)", border:"1.5px solid var(--border-2)",
+        borderRadius:18, width:"100%", maxWidth:560, maxHeight:"90vh",
+        display:"flex", flexDirection:"column", overflow:"hidden",
         boxShadow:"0 0 60px var(--glow-purple),0 32px 80px rgba(0,0,0,.8)",
         animation:"modal-enter .25s cubic-bezier(.16,1,.3,1)",
       }}>
-        {/* Header */}
         <div style={{
-          padding:"20px 24px 16px",borderBottom:"1px solid var(--border)",
-          display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,
+          padding:"18px 22px", borderBottom:"1px solid var(--border)",
+          display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
           background:"linear-gradient(135deg,rgba(124,58,237,.15),rgba(6,182,212,.08))",
         }}>
           <div>
-            <h2 style={{fontSize:18,fontWeight:800,letterSpacing:"-.03em"}}>🏅 Badge Shop</h2>
-            <p style={{fontSize:12,color:"var(--text-3)",marginTop:2}}>Spend coins to unlock badges & benefits</p>
+            <h2 style={{fontSize:18,fontWeight:800,letterSpacing:"-.03em",display:"flex",alignItems:"center",gap:8}}>
+              <AppIcon name="badge" size={19} /> Badge Shop
+            </h2>
+            <p style={{fontSize:12,color:"var(--text-3)",marginTop:2}}>Spend coins to unlock badges and benefits</p>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{
-              background:"rgba(245,158,11,.15)",border:"1.5px solid rgba(245,158,11,.3)",
-              borderRadius:20,padding:"6px 14px",fontSize:14,fontWeight:700,color:"#f59e0b",
-            }}>🪙 {balance}</div>
-            <button className="icon-btn" onClick={onClose}>✕</button>
+              background:"rgba(245,158,11,.15)", border:"1.5px solid rgba(245,158,11,.3)",
+              borderRadius:20, padding:"6px 12px", fontSize:13, fontWeight:800, color:"#f59e0b",
+              display:"flex", alignItems:"center", gap:6,
+            }}>
+              <AppIcon name="coin" size={15} /> {balance.toLocaleString()}
+            </div>
+            <button className="icon-btn" onClick={onClose} title="Close"><AppIcon name="close" size={16} /></button>
           </div>
         </div>
 
         <div style={{display:"flex",flex:1,minHeight:0}}>
-          {/* Badge grid */}
           <div style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:8}}>
             {error && (
-              <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",
-                borderRadius:10,padding:"8px 12px",fontSize:12,color:"#fca5a5",marginBottom:4}}>
+              <div style={{background:"rgba(239,68,68,.1)",border:"1px solid rgba(239,68,68,.2)",borderRadius:10,padding:"8px 12px",fontSize:12,color:"#fca5a5"}}>
                 {error}
               </div>
             )}
@@ -73,55 +75,53 @@ export default function BadgeShopModal({ onClose }) {
                 <button key={badge.id} onClick={() => setSelected(badge.id)}
                   style={{
                     display:"flex",alignItems:"center",gap:14,
-                    padding:"14px 16px",background:isSelected?"var(--accent-bg)":"var(--bg-2)",
+                    padding:"13px 14px",background:isSelected?"var(--accent-bg)":"var(--bg-2)",
                     border:`1.5px solid ${isSelected?badge.color+"66":"var(--border)"}`,
-                    borderRadius:16,cursor:"pointer",textAlign:"left",
+                    borderRadius:12,cursor:"pointer",textAlign:"left",
                     transition:"all .15s",width:"100%",
                     boxShadow:isSelected?`0 0 16px ${badge.glow}`:"none",
                   }}>
-                  {/* Badge icon */}
                   <div style={{
-                    width:48,height:48,borderRadius:"50%",flexShrink:0,
+                    width:46,height:46,borderRadius:"50%",flexShrink:0,
                     background:`${badge.color}20`,border:`2px solid ${badge.color}44`,
                     display:"flex",alignItems:"center",justifyContent:"center",
-                    fontSize:22,boxShadow:`0 0 12px ${badge.glow}`,
-                  }}>{badge.icon}</div>
+                    color:badge.color,boxShadow:`0 0 12px ${badge.glow}`,
+                  }}>
+                    <AppIcon name={badge.iconName} size={23} />
+                  </div>
 
-                  {/* Info */}
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                      <span style={{fontSize:14,fontWeight:700}}>{badge.label}</span>
+                      <span style={{fontSize:14,fontWeight:800}}>{badge.label}</span>
                       {isOwned && (
-                        <span style={{background:"rgba(34,197,94,.15)",border:"1px solid rgba(34,197,94,.3)",
-                          borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:700,color:"var(--green)"}}>
-                          OWNED ✓
+                        <span style={{background:"rgba(34,197,94,.15)",border:"1px solid rgba(34,197,94,.3)",borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:800,color:"var(--green)"}}>
+                          OWNED
                         </span>
                       )}
                     </div>
                     <div style={{fontSize:12,color:"var(--text-3)",marginBottom:6}}>{badge.desc}</div>
                     <div style={{fontSize:11,color:"var(--text-2)"}}>
-                      {badge.benefits.slice(0,2).join(" · ")}
+                      {badge.benefits.slice(0,2).join(" - ")}
                     </div>
                   </div>
 
-                  {/* Price / action */}
                   <div style={{flexShrink:0,textAlign:"right"}}>
                     {isOwned ? (
-                      <div style={{fontSize:18}}>✓</div>
+                      <AppIcon name="check" size={18} style={{ color:"var(--green)" }} />
                     ) : isSuccess ? (
-                      <div style={{fontSize:12,fontWeight:700,color:"var(--green)"}}>Unlocked! 🎉</div>
+                      <div style={{fontSize:12,fontWeight:800,color:"var(--green)"}}>Unlocked</div>
                     ) : (
-                      <button onClick={e=>{e.stopPropagation();handleBuy(badge.id)}}
+                      <button onClick={e=>{e.stopPropagation();handleBuy(badge.id);}}
                         disabled={!canAfford||isBuying}
                         style={{
                           background:canAfford?"linear-gradient(135deg,var(--accent),var(--accent-2))":"var(--bg-3)",
-                          border:"none",borderRadius:12,padding:"7px 14px",
+                          border:"none",borderRadius:10,padding:"7px 12px",
                           color:canAfford?"#fff":"var(--text-3)",
-                          fontFamily:"var(--font)",fontSize:12,fontWeight:700,cursor:canAfford?"pointer":"not-allowed",
+                          fontFamily:"var(--font)",fontSize:12,fontWeight:800,cursor:canAfford?"pointer":"not-allowed",
                           boxShadow:canAfford?"0 0 12px var(--glow-purple)":"none",
-                          transition:"all .15s",whiteSpace:"nowrap",
+                          transition:"all .15s",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,
                         }}>
-                        {isBuying ? "…" : `🪙 ${badge.shopPrice}`}
+                        {isBuying ? "..." : <><AppIcon name="coin" size={13} /> {badge.shopPrice}</>}
                       </button>
                     )}
                   </div>
@@ -130,32 +130,34 @@ export default function BadgeShopModal({ onClose }) {
             })}
           </div>
 
-          {/* Detail panel */}
           {sel && (
             <div style={{
-              width:200,flexShrink:0,borderLeft:"1px solid var(--border)",
+              width:210,flexShrink:0,borderLeft:"1px solid var(--border)",
               padding:16,overflowY:"auto",display:"flex",flexDirection:"column",gap:12,
             }}>
               <div style={{
                 width:64,height:64,borderRadius:"50%",margin:"0 auto",
                 background:`${sel.color}20`,border:`2px solid ${sel.color}55`,
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,
+                display:"flex",alignItems:"center",justifyContent:"center",color:sel.color,
                 boxShadow:`0 0 20px ${sel.glow}`,
-              }}>{sel.icon}</div>
+              }}>
+                <AppIcon name={sel.iconName} size={30} />
+              </div>
               <div style={{textAlign:"center"}}>
                 <div style={{fontSize:15,fontWeight:800,color:sel.color}}>{sel.label}</div>
                 <div style={{fontSize:11,color:"var(--text-3)",marginTop:4}}>{sel.desc}</div>
               </div>
-              <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.2)",
-                borderRadius:10,padding:"8px 10px",textAlign:"center"}}>
+              <div style={{background:"rgba(245,158,11,.1)",border:"1px solid rgba(245,158,11,.2)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}>
                 <div style={{fontSize:11,color:"var(--text-3)"}}>Coin reward</div>
-                <div style={{fontSize:16,fontWeight:800,color:"#f59e0b"}}>🪙 +{sel.coinReward}</div>
+                <div style={{fontSize:16,fontWeight:800,color:"#f59e0b",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                  <AppIcon name="coin" size={15} /> +{sel.coinReward}
+                </div>
               </div>
               <div>
-                <div style={{fontSize:10,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Benefits</div>
+                <div style={{fontSize:10,fontWeight:800,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Benefits</div>
                 {sel.benefits.map((b,i) => (
-                  <div key={i} style={{display:"flex",gap:6,marginBottom:6}}>
-                    <span style={{color:sel.color,flexShrink:0,fontSize:12}}>✦</span>
+                  <div key={i} style={{display:"flex",gap:7,marginBottom:7}}>
+                    <AppIcon name="check" size={12} style={{color:sel.color,flexShrink:0,marginTop:2}} />
                     <span style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5}}>{b}</span>
                   </div>
                 ))}
@@ -165,17 +167,18 @@ export default function BadgeShopModal({ onClose }) {
                   disabled={balance < sel.shopPrice || buying === sel.id}
                   style={{
                     background:balance>=sel.shopPrice?"linear-gradient(135deg,var(--accent),var(--accent-2))":"var(--bg-3)",
-                    border:"none",borderRadius:12,padding:"10px",
+                    border:"none",borderRadius:10,padding:"10px",
                     color:balance>=sel.shopPrice?"#fff":"var(--text-3)",
-                    fontFamily:"var(--font)",fontSize:13,fontWeight:700,cursor:"pointer",
+                    fontFamily:"var(--font)",fontSize:13,fontWeight:800,cursor:"pointer",
                     boxShadow:balance>=sel.shopPrice?"0 0 14px var(--glow-purple)":"none",
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:6,
                   }}>
-                  {buying===sel.id?"Unlocking…":`Unlock · 🪙 ${sel.shopPrice}`}
+                  {buying===sel.id ? "Unlocking..." : <><AppIcon name="coin" size={14} /> Unlock {sel.shopPrice}</>}
                 </button>
               )}
               {owned && (
-                <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:"var(--green)"}}>
-                  ✓ You own this badge
+                <div style={{textAlign:"center",fontSize:12,fontWeight:800,color:"var(--green)"}}>
+                  You own this badge
                 </div>
               )}
             </div>

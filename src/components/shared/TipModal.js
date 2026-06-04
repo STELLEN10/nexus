@@ -1,7 +1,7 @@
-// src/components/shared/TipModal.js
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useCoins, COIN_AMOUNTS } from "../../hooks/useCoins";
+import AppIcon from "./AppIcon";
 
 export default function TipModal({ toUser, onClose }) {
   const { balance, displayBalance, tip, isOwner } = useCoins();
@@ -11,129 +11,105 @@ export default function TipModal({ toUser, onClose }) {
   const [error, setError] = useState("");
 
   const handleTip = async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       await tip(toUser.uid, toUser.displayName || toUser.username, amount);
       setDone(true);
       setTimeout(onClose, 2200);
     } catch (err) {
       setError(err.message);
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const canAfford = isOwner || balance >= amount;
 
   return createPortal(
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{
-      position:"fixed",inset:0,zIndex:300,
-      background:"rgba(0,0,0,.78)",backdropFilter:"blur(6px)",
-      display:"flex",alignItems:"center",justifyContent:"center",padding:20,
+      position:"fixed", inset:0, zIndex:300,
+      background:"rgba(0,0,0,.78)", backdropFilter:"blur(6px)",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20,
     }}>
       <div style={{
-        background:"var(--bg-1)",border:"1.5px solid var(--border-2)",
-        borderRadius:22,width:"100%",maxWidth:340,overflow:"hidden",
+        background:"var(--bg-1)", border:"1.5px solid var(--border-2)",
+        borderRadius:18, width:"100%", maxWidth:340, overflow:"hidden",
         boxShadow:"0 0 40px var(--glow-purple),0 24px 60px rgba(0,0,0,.8)",
         animation:"modal-enter .2s cubic-bezier(.16,1,.3,1)",
       }}>
-        {/* Header */}
         <div style={{
-          padding:"16px 20px",borderBottom:"1px solid var(--border)",
-          display:"flex",alignItems:"center",justifyContent:"space-between",
+          padding:"16px 20px", borderBottom:"1px solid var(--border)",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
           background:"linear-gradient(135deg,rgba(245,158,11,.1),rgba(124,58,237,.08))",
         }}>
-          <span style={{fontSize:15,fontWeight:800}}>🪙 Send Coins</span>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <span style={{fontSize:15,fontWeight:800,display:"flex",alignItems:"center",gap:7}}>
+            <AppIcon name="coin" size={16} /> Send Coins
+          </span>
+          <button className="icon-btn" onClick={onClose}><AppIcon name="close" size={16} /></button>
         </div>
 
         {done ? (
           <div style={{padding:"44px 20px",textAlign:"center"}}>
-            <div style={{fontSize:52,marginBottom:14}}>🎉</div>
-            <p style={{fontSize:17,fontWeight:800,color:"var(--green)"}}>Sent {amount} coins!</p>
-            <p style={{fontSize:13,color:"var(--text-2)",marginTop:6}}>
-              to {toUser.displayName || toUser.username}
-            </p>
+            <div style={{width:58,height:58,borderRadius:"50%",background:"rgba(34,197,94,.12)",border:"1.5px solid rgba(34,197,94,.35)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--green)",margin:"0 auto 14px"}}>
+              <AppIcon name="check" size={30} />
+            </div>
+            <p style={{fontSize:17,fontWeight:800,color:"var(--green)"}}>Sent {amount} coins.</p>
+            <p style={{fontSize:13,color:"var(--text-2)",marginTop:6}}>to {toUser.displayName || toUser.username}</p>
           </div>
         ) : (
           <div style={{padding:20,display:"flex",flexDirection:"column",gap:16}}>
-
-            {/* Recipient */}
-            <div style={{
-              display:"flex",alignItems:"center",gap:12,
-              padding:"12px 14px",background:"var(--bg-2)",borderRadius:14,
-            }}>
-              <div style={{
-                width:40,height:40,borderRadius:"50%",flexShrink:0,
-                background:"var(--accent-bg)",overflow:"hidden",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:16,fontWeight:700,color:"var(--accent-2)",
-              }}>
-                {toUser.avatar
-                  ? <img src={toUser.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                  : (toUser.displayName||"?").slice(0,2).toUpperCase()
-                }
+            <div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",background:"var(--bg-2)",borderRadius:14}}>
+              <div style={{width:40,height:40,borderRadius:"50%",flexShrink:0,background:"var(--accent-bg)",overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"var(--accent-2)"}}>
+                {toUser.avatar ? <img src={toUser.avatar} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : (toUser.displayName||"?").slice(0,2).toUpperCase()}
               </div>
               <div>
-                <p style={{fontSize:14,fontWeight:700}}>{toUser.displayName||toUser.username}</p>
+                <p style={{fontSize:14,fontWeight:800}}>{toUser.displayName||toUser.username}</p>
                 <p style={{fontSize:12,color:"var(--text-3)"}}>@{toUser.username}</p>
               </div>
             </div>
 
-            {/* Balance */}
-            <div style={{
-              textAlign:"center",padding:"10px 0",
-              background:"var(--bg-2)",borderRadius:14,
-            }}>
-              <p style={{fontSize:11,color:"var(--text-3)",marginBottom:4,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em"}}>Your balance</p>
-              <p style={{
-                fontSize:28,fontWeight:800,
-                color: isOwner ? "#f59e0b" : "var(--accent-2)",
-              }}>
-                🪙 {displayBalance}
-                {isOwner && <span style={{fontSize:12,color:"var(--text-3)",fontWeight:600,marginLeft:6}}>unlimited</span>}
+            <div style={{textAlign:"center",padding:"10px 0",background:"var(--bg-2)",borderRadius:14}}>
+              <p style={{fontSize:11,color:"var(--text-3)",marginBottom:4,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em"}}>Your balance</p>
+              <p style={{fontSize:28,fontWeight:800,color: isOwner ? "#f59e0b" : "var(--accent-2)"}}>
+                <span style={{display:"inline-flex",alignItems:"center",gap:7}}>
+                  <AppIcon name="coin" size={24} /> {displayBalance}
+                </span>
               </p>
             </div>
 
-            {/* Amount picker */}
             <div>
-              <p style={{fontSize:11,fontWeight:700,color:"var(--text-3)",marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>Choose amount</p>
+              <p style={{fontSize:11,fontWeight:800,color:"var(--text-3)",marginBottom:10,textTransform:"uppercase",letterSpacing:".06em"}}>Choose amount</p>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {COIN_AMOUNTS.map(a => (
                   <button key={a} onClick={() => setAmount(a)} style={{
-                    padding:"13px",
-                    border:`2px solid ${amount===a?"var(--accent)":"var(--border)"}`,
-                    borderRadius:14,
-                    background:amount===a?"var(--accent-bg)":"var(--bg-2)",
+                    padding:"13px", border:`2px solid ${amount===a?"var(--accent)":"var(--border)"}`,
+                    borderRadius:14, background:amount===a?"var(--accent-bg)":"var(--bg-2)",
                     color:amount===a?"var(--accent-2)":"var(--text-2)",
-                    fontFamily:"var(--font)",fontSize:16,fontWeight:800,cursor:"pointer",
-                    transition:"all .15s",
-                    boxShadow:amount===a?"0 0 14px var(--glow-purple)":"none",
+                    fontFamily:"var(--font)", fontSize:16, fontWeight:800, cursor:"pointer",
+                    transition:"all .15s", boxShadow:amount===a?"0 0 14px var(--glow-purple)":"none",
                   }}>
-                    🪙 {a}
+                    <span style={{display:"inline-flex",alignItems:"center",gap:6}}><AppIcon name="coin" size={15} /> {a}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {error && <p style={{fontSize:12,color:"var(--red)",textAlign:"center",fontWeight:600}}>{error}</p>}
+            {error && <p style={{fontSize:12,color:"var(--red)",textAlign:"center",fontWeight:700}}>{error}</p>}
 
-            {/* Send button */}
             <button onClick={handleTip} disabled={loading || !canAfford} style={{
-              background: canAfford
-                ? "linear-gradient(135deg,var(--accent),var(--accent-2))"
-                : "var(--bg-3)",
-              border:"none",borderRadius:14,padding:"14px",
+              background: canAfford ? "linear-gradient(135deg,var(--accent),var(--accent-2))" : "var(--bg-3)",
+              border:"none", borderRadius:14, padding:"14px",
               color: canAfford ? "#fff" : "var(--text-3)",
-              fontFamily:"var(--font)",fontSize:14,fontWeight:700,
+              fontFamily:"var(--font)", fontSize:14, fontWeight:800,
               cursor: loading || !canAfford ? "not-allowed" : "pointer",
               boxShadow: canAfford ? "0 0 20px var(--glow-purple)" : "none",
-              transition:"all .15s",
+              transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center", gap:7,
             }}>
-              {loading ? "Sending…" : !canAfford ? "Not enough coins" : `Send 🪙 ${amount} coins`}
+              {loading ? "Sending..." : !canAfford ? "Not enough coins" : <><AppIcon name="coin" size={16} /> Send {amount} coins</>}
             </button>
 
-            <p style={{fontSize:11,color:"var(--text-3)",textAlign:"center"}}>
-              Coins are virtual and have no real-world value
-            </p>
+            <p style={{fontSize:11,color:"var(--text-3)",textAlign:"center"}}>Coins are virtual and have no real-world value</p>
           </div>
         )}
       </div>
