@@ -10,7 +10,7 @@ export const BADGES = {
   early_adopter: {
     id: "early_adopter",
     label: "Early Adopter",
-    icon: "🌟",
+    iconName: "star",
     color: "#f59e0b",
     glow: "#f59e0b66",
     desc: "One of the first to join Nexus",
@@ -27,7 +27,7 @@ export const BADGES = {
   founder: {
     id: "founder",
     label: "Founder",
-    icon: "👑",
+    iconName: "crown",
     color: "#a855f7",
     glow: "#a855f766",
     desc: "Nexus founding member",
@@ -45,7 +45,7 @@ export const BADGES = {
   verified: {
     id: "verified",
     label: "Verified",
-    icon: "✓",
+    iconName: "check",
     color: "#06b6d4",
     glow: "#06b6d466",
     desc: "Verified Nexus account",
@@ -62,7 +62,7 @@ export const BADGES = {
   creator: {
     id: "creator",
     label: "Creator",
-    icon: "🎨",
+    iconName: "palette",
     color: "#ec4899",
     glow: "#ec489966",
     desc: "Content creator on Nexus",
@@ -80,7 +80,7 @@ export const BADGES = {
   og: {
     id: "og",
     label: "OG",
-    icon: "🔥",
+    iconName: "rocket",
     color: "#ef4444",
     glow: "#ef444466",
     desc: "Original Gangster — been here from day one",
@@ -98,7 +98,7 @@ export const BADGES = {
   social_butterfly: {
     id: "social_butterfly",
     label: "Social",
-    icon: "🦋",
+    iconName: "users",
     color: "#22c55e",
     glow: "#22c55e66",
     desc: "The life of the party",
@@ -115,7 +115,7 @@ export const BADGES = {
   storyteller: {
     id: "storyteller",
     label: "Storyteller",
-    icon: "📖",
+    iconName: "book",
     color: "#8b5cf6",
     glow: "#8b5cf666",
     desc: "Master of stories",
@@ -133,7 +133,7 @@ export const BADGES = {
   whale: {
     id: "whale",
     label: "Whale",
-    icon: "🐳",
+    iconName: "coin",
     color: "#0ea5e9",
     glow: "#0ea5e966",
     desc: "Big tipper — sent 1000+ coins",
@@ -144,14 +144,14 @@ export const BADGES = {
       "350 bonus coins",
       "Whale badge on all tips",
       "Featured in Top Tippers list",
-      "Exclusive whale emoji reactions",
+      "Exclusive high-value reactions",
     ],
     borderStyle: "linear-gradient(135deg, #0ea5e9, #06b6d4, #22d3ee)",
   },
   nightowl: {
     id: "nightowl",
     label: "Night Owl",
-    icon: "🦉",
+    iconName: "moon",
     color: "#6366f1",
     glow: "#6366f166",
     desc: "Always online after midnight",
@@ -168,7 +168,7 @@ export const BADGES = {
   legend: {
     id: "legend",
     label: "Legend",
-    icon: "⚡",
+    iconName: "star",
     color: "#eab308",
     glow: "#eab30866",
     desc: "A true Nexus legend",
@@ -263,7 +263,7 @@ export async function awardBadge(uid, badgeId, silent = false) {
       badgeLabel: badge.label,
       badgeIcon: badge.icon,
       coinReward: badge.coinReward,
-      message: `awarded you the ${badge.icon} ${badge.label} badge! (+${badge.coinReward} coins)`,
+      message: `awarded you the ${badge.label} badge! (+${badge.coinReward} coins)`,
       read: false,
       createdAt: serverTimestamp(),
     });

@@ -16,6 +16,7 @@ import PostCard from "../components/social/PostCard";
 import CreatePost from "../components/social/CreatePost";
 import SettingsModal from "../components/settings/SettingsModal";
 import CoinWallet from "../components/shared/CoinWallet";
+import AppIcon from "../components/shared/AppIcon";
 
 // ── Followers / Following modal ────────────────────────────
 function FollowListModal({ uid, mode, onClose }) {
@@ -225,18 +226,17 @@ export default function ProfilePage() {
                     className={`btn-follow ${isFollowing ? "following" : ""}`}
                     onClick={() => isFollowing ? unfollow() : follow(profile)}
                   >
-                    {isFollowing ? "✓ Following" : "+ Follow"}
+                    {isFollowing ? <><AppIcon name="check" size={14} /> Following</> : "+ Follow"}
                   </button>
                   <button className="btn-msg" onClick={handleSendDM}>
-                    {dmStatus === "sent" ? "✓ Sent" : "💬 Message"}
+                    {dmStatus === "sent" ? <><AppIcon name="check" size={14} /> Sent</> : <><AppIcon name="mail" size={14} /> Message</>}
                   </button>
                   <button className="btn-msg" onClick={() => setShowTip(true)} title="Send coins">
-                    🪙 Tip
+                    <AppIcon name="coin" size={14} /> Tip
                   </button>
-                  {/* Owner-only Award Badge button */}
                   {myProfile?.username === "STELLEN10" && (
                     <button className="btn-msg" onClick={() => setShowAwardBadge(true)} title="Award Badge">
-                      🏅 Award
+                      <AppIcon name="badge" size={14} /> Award
                     </button>
                   )}
                 </>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { BADGES } from "../../hooks/useBadges";
+import AppIcon from "./AppIcon";
 
 function BadgeTooltip({ badge, onClose }) {
   return createPortal(
@@ -20,9 +21,9 @@ function BadgeTooltip({ badge, onClose }) {
           width:72,height:72,borderRadius:"50%",
           background:`${badge.color}22`,border:`2px solid ${badge.color}66`,
           display:"flex",alignItems:"center",justifyContent:"center",
-          fontSize:32,margin:"0 auto 16px",
+          color:badge.color,margin:"0 auto 16px",
           boxShadow:`0 0 20px ${badge.glow}`
-        }}>{badge.icon}</div>
+        }}><AppIcon name={badge.iconName} size={34} /></div>
         <h3 style={{fontSize:18,fontWeight:800,color:badge.color,marginBottom:8}}>{badge.label}</h3>
         <p style={{fontSize:13,color:"var(--text-2)",lineHeight:1.6}}>{badge.desc}</p>
         <button onClick={onClose} style={{
@@ -41,7 +42,7 @@ export default function BadgeDisplay({ badgeIds = [], size = "md" }) {
   if (!badgeIds.length) return null;
 
   const sz = size === "sm" ? 22 : size === "lg" ? 34 : 28;
-  const fontSize = size === "sm" ? 11 : size === "lg" ? 18 : 14;
+  const iconSize = size === "sm" ? 13 : size === "lg" ? 18 : 15;
 
   return (
     <>
@@ -60,14 +61,14 @@ export default function BadgeDisplay({ badgeIds = [], size = "md" }) {
                 background:`${badge.color}22`,
                 border:`1.5px solid ${badge.color}66`,
                 display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize,cursor:"pointer",
+                color:badge.color,cursor:"pointer",
                 boxShadow:`0 0 8px ${badge.glow}`,
                 transition:"transform .15s, box-shadow .15s",
               }}
               onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.2)";e.currentTarget.style.boxShadow=`0 0 16px ${badge.glow}`;}}
               onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow=`0 0 8px ${badge.glow}`;}}
             >
-              {badge.icon}
+              <AppIcon name={badge.iconName} size={iconSize} />
             </button>
           );
         })}

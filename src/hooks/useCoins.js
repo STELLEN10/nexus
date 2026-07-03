@@ -1,79 +1,158 @@
 import { useState, useEffect, useCallback } from "react";
-import { doc, getDoc, setDoc, updateDoc, increment,
-         addDoc, collection, onSnapshot, query,
-         where, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  increment,
+  addDoc,
+  collection,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 export const COIN_AMOUNTS = [10, 50, 100, 500];
-export const STARTING_COINS = 100; // every new user gets 100 coins
+export const STARTING_COINS = 100;
+export const OWNER_BALANCE = 999999999;
+export const OWNER_UID_KEY = "nexus_owner_uid";
+
+export function isOwnerUid(uid) {
+  return Boolean(uid && localStorage.getItem(OWNER_UID_KEY) === uid);
+}
+
+async function ensureWallet(uid, initialBalance = STARTING_COINS) {
+  const ref = doc(db, "coins", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      balance: initialBalance,
+      uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  return ref;
+}
 
 export function useCoins() {
   const { user } = useAuth();
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const isOwner = user ? isOwnerUid(user.uid) : false;
 
   useEffect(() => {
-    if (!user) return;
-    const ref = doc(db, "coins", user.uid);
-    const unsub = onSnapshot(ref, async snap => {
-      if (snap.exists()) {
-        setBalance(snap.data().balance || 0);
-      } else {
-        // New user — give starting coins
-        await setDoc(ref, { balance: STARTING_COINS, uid: user.uid });
-        setBalance(STARTING_COINS);
-      }
+    if (!user) {
+      setBalance(0);
       setLoading(false);
-    });
+      return;
+    }
+
+    setLoading(true);
+    const ref = doc(db, "coins", user.uid);
+
+    const unsub = onSnapshot(
+      ref,
+      async snap => {
+        if (snap.exists()) {
+          setBalance(snap.data().balance ?? 0);
+        } else {
+          const startingBalance = isOwnerUid(user.uid) ? OWNER_BALANCE : STARTING_COINS;
+          await setDoc(ref, {
+            balance: startingBalance,
+            uid: user.uid,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          setBalance(startingBalance);
+        }
+        setLoading(false);
+      },
+      err => {
+        console.error("Coins listener error:", err);
+        setLoading(false);
+      }
+    );
+
     return unsub;
   }, [user]);
 
   const tip = useCallback(async (toUid, toUsername, amount) => {
-    if (!user || balance < amount) throw new Error("Not enough coins.");
+    if (!user) throw new Error("Not logged in.");
     if (toUid === user.uid) throw new Error("Can't tip yourself.");
     if (!COIN_AMOUNTS.includes(amount)) throw new Error("Invalid amount.");
+    if (!isOwner && balance < amount) throw new Error("Not enough coins.");
 
-    // Deduct from sender
-    await updateDoc(doc(db, "coins", user.uid), { balance: increment(-amount) });
-    // Add to receiver
-    const receiverRef = doc(db, "coins", toUid);
-    const receiverSnap = await getDoc(receiverRef);
-    if (receiverSnap.exists()) {
-      await updateDoc(receiverRef, { balance: increment(amount) });
+    const senderRef = await ensureWallet(user.uid, isOwner ? OWNER_BALANCE : STARTING_COINS);
+    if (isOwner) {
+      await setDoc(senderRef, {
+        balance: OWNER_BALANCE,
+        uid: user.uid,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
     } else {
-      await setDoc(receiverRef, { balance: amount, uid: toUid });
+      await updateDoc(senderRef, {
+        balance: increment(-amount),
+        updatedAt: serverTimestamp(),
+      });
     }
 
-    // Record transaction
+    const receiverRef = await ensureWallet(toUid, STARTING_COINS);
+    await updateDoc(receiverRef, {
+      balance: increment(amount),
+      updatedAt: serverTimestamp(),
+    });
+
     await addDoc(collection(db, "transactions"), {
       fromUid: user.uid,
       fromUsername: user.displayName || "User",
       toUid,
       toUsername,
       amount,
+      type: "tip",
       createdAt: serverTimestamp(),
     });
 
-    // Send notification
     await addDoc(collection(db, "notifications"), {
       type: "tip",
       fromUid: user.uid,
       fromUsername: user.displayName || "Someone",
       toUid,
-      message: `tipped you ${amount} coins 🪙`,
+      amount,
+      message: `tipped you ${amount} coins`,
       read: false,
       createdAt: serverTimestamp(),
     });
-  }, [user, balance]);
+  }, [user, balance, isOwner]);
 
-  return { balance, loading, tip };
+  const refillOwner = useCallback(async () => {
+    if (!isOwner || !user) return;
+    await setDoc(doc(db, "coins", user.uid), {
+      balance: OWNER_BALANCE,
+      uid: user.uid,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }, [user, isOwner]);
+
+  const displayBalance = isOwner ? "Unlimited" : balance;
+
+  return { balance, displayBalance, loading, tip, isOwner, refillOwner };
 }
 
 export function useTransactions(uid) {
   const [transactions, setTransactions] = useState([]);
+
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      setTransactions([]);
+      return;
+    }
+
     const q = query(
       collection(db, "transactions"),
       where("toUid", "==", uid),
@@ -85,5 +164,39 @@ export function useTransactions(uid) {
     );
     return unsub;
   }, [uid]);
+
   return transactions;
+}
+
+export async function giveCoinsToUser(toUid, amount, fromUsername = "Nexus Owner", reason = "") {
+  if (!toUid) throw new Error("Missing recipient.");
+  if (!Number.isFinite(amount) || amount < 1) throw new Error("Invalid amount.");
+
+  const receiverRef = await ensureWallet(toUid, STARTING_COINS);
+  await updateDoc(receiverRef, {
+    balance: increment(amount),
+    updatedAt: serverTimestamp(),
+  });
+
+  await addDoc(collection(db, "transactions"), {
+    fromUid: "system",
+    fromUsername,
+    toUid,
+    toUsername: "User",
+    amount,
+    type: "owner_gift",
+    reason,
+    createdAt: serverTimestamp(),
+  });
+
+  await addDoc(collection(db, "notifications"), {
+    type: "tip",
+    fromUid: "system",
+    fromUsername,
+    toUid,
+    amount,
+    message: `gifted you ${amount} coins${reason ? ` - ${reason}` : ""}`,
+    read: false,
+    createdAt: serverTimestamp(),
+  });
 }
