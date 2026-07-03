@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, limit, getDoc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import {
   collection,
   getDocs,
@@ -20,6 +21,20 @@ import { awardBadge, BADGES } from "../../hooks/useBadgeSystem";
 import { giveCoinsToUser, OWNER_BALANCE, OWNER_UID_KEY } from "../../hooks/useCoins";
 import { useAuth } from "../../context/AuthContext";
 import AppIcon from "../shared/AppIcon";
+
+// ── Tabs ──────────────────────────────────────────────────────
+
+const sortUsersByDisplayName = users =>
+  [...users].sort((a, b) =>
+    (a.displayName || a.username || "").localeCompare(
+      b.displayName || b.username || "",
+      undefined,
+      { sensitivity: "base" }
+    )
+  );
+
+const usersFromSnapshot = snap =>
+  sortUsersByDisplayName(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 
 const TABS = [
   { id:"overview", icon:"analytics", label:"Overview" },
@@ -307,6 +322,11 @@ function BadgesTab() {
   const [msg, setMsg] = useState("");
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    getDocs(query(collection(db,"users"),limit(100)))
+      .then(snap => setUsers(usersFromSnapshot(snap)))
+      .catch(err => setMsg("Error loading users: " + err.message));
+  }, []);
   useEffect(()=>{
     getDocs(query(collection(db,"users"),orderBy("displayName"),limit(200)))
       .then(snap=>setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
@@ -397,6 +417,13 @@ function CoinsTab() {
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+ 
+  useEffect(() => {
+    getDocs(query(collection(db, "users"), limit(100)))
+      .then(snap => setUsers(usersFromSnapshot(snap)))
+      .catch(err => setMsg("Error loading users: " + err.message));
+  }, []);
+ 
 
   useEffect(()=>{
     getDocs(query(collection(db,"users"),orderBy("displayName"),limit(200)))
